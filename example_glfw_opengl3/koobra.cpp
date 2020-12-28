@@ -6,6 +6,12 @@
 
 xpldCPU::xpldCPU(xpldMMU* mmu)
 {
+    reset();
+    theMmu = mmu;
+}
+
+void xpldCPU::reset()
+{
     pc = 0;
     sp = 0x00400000;
     freg = 0;
@@ -14,8 +20,6 @@ xpldCPU::xpldCPU(xpldMMU* mmu)
     {
         r[i] = 0;
     }
-
-    theMmu = mmu;
 }
 
 void xpldCPU::setZeroFlag(bool v)
@@ -137,7 +141,7 @@ void xpldCPU::stepOne()
         {
             // ld32 [memory address 32 bit],immediate
             unsigned int addr32 = theMmu->read32(pc + 1);
-            unsigned char imm = theMmu->read32(pc + 5);
+            unsigned int imm = theMmu->read32(pc + 5);
             theMmu->write32(addr32, imm);
             pc += 9;
             break;
@@ -183,6 +187,7 @@ void xpldCPU::stepOne()
             // ld8 rx,[ry]
             unsigned char dstReg = theMmu->read8(pc + 1);
             unsigned char indReg = theMmu->read8(pc + 2);
+            unsigned char rrr= theMmu->read8(r[indReg]);
             r[dstReg] = theMmu->read8(r[indReg]);
             pc += 3;
             break;
@@ -202,6 +207,15 @@ void xpldCPU::stepOne()
             unsigned char dstReg = theMmu->read8(pc + 1);
             unsigned char imm = theMmu->read8(pc + 2);
             theMmu->write8(r[dstReg], imm);
+            pc += 3;
+            break;
+        }
+        case 0x1d:
+        {
+            // ld32 rx,[ry]
+            unsigned char dstReg = theMmu->read8(pc + 1);
+            unsigned char srcReg = theMmu->read8(pc + 2);
+            r[dstReg] = theMmu->read32(r[srcReg]);
             pc += 3;
             break;
         }
@@ -305,6 +319,15 @@ void xpldCPU::stepOne()
             pc += 6;
             break;
         }
+        case 0x71:
+        {
+            // mod r0,r1
+            unsigned char regSrc = theMmu->read8(pc + 1);
+            unsigned char regSrc2 = theMmu->read8(pc + 2);
+            r[regSrc] %= r[regSrc2];
+            pc += 3;
+            break;
+        }
         case 0x80:
         {
             // jmp addr32
@@ -317,6 +340,14 @@ void xpldCPU::stepOne()
             // jnz addr32
             unsigned int addr32 = theMmu->read32(pc + 1);
             if (!(freg & 0x02)) pc = addr32;
+            else pc += 5;
+            break;
+        }
+        case 0x83:
+        {
+            // jz addr32
+            unsigned int addr32 = theMmu->read32(pc + 1);
+            if (freg & 0x02) pc = addr32;
             else pc += 5;
             break;
         }

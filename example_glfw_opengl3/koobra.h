@@ -38,7 +38,7 @@ public:
     std::string getFlagsRegister();
 
     void stepOne();
-
+    void reset();
 };
 
 #endif

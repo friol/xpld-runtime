@@ -12,7 +12,7 @@
 
 xpldVideochip::xpldVideochip()
 {
-    // init mode 0 videoram to zero
+    // init mode 0 videoram
     for (int b = 0;b < videomode0numCols * videomode0numRows;b++)
     {
         videomode0vram[b] = 0;
@@ -43,26 +43,11 @@ xpldVideochip::xpldVideochip()
     mode0palette[14] = 0x50459b;
     mode0palette[15] = 0xa057a3;
 
-    // create mode2 palette
-
-    float frequency = 3.141592f/256.0f;
+    // mode2 palette is black
     for (int i = 0; i < 256; ++i)
     {
-        /*
-        float red = sin((i*8.0*3.141592f)/256.0f) * 127 + 128;
-        float green = sin(2.0*(i * 3.141592f) / 256.0f) * 127 - 128;
-        float blue = sin(4.0*(i * 3.141592f) / 256.0f) * 127 + 64;
-
-        int r = (int)red;
-        int g = (int)green;
-        int b = (int)blue;
-
-        mode2palette[i] = r | (g << 8) | (b << 16) | (0xff << 24);
-        */
         mode2palette[i] = 0xff000000;
     }
-
-    //mode2palette[0] = 0;
 
     loadMode0Font();
 
@@ -82,6 +67,43 @@ xpldVideochip::xpldVideochip()
     }
 }
 
+void xpldVideochip::reset()
+{
+    // init mode 0 videoram
+    for (int b = 0;b < videomode0numCols * videomode0numRows;b++)
+    {
+        videomode0vram[b] = 0;
+        videomode0attr[b] = 0x54;
+    }
+
+    // init mode 2 videoram to zero
+    for (int b = 0;b < mode2dimx * mode2dimy;b++)
+    {
+        videomode2vram[b] = 0;
+    }
+
+    // mode2 palette is black
+    for (int i = 0; i < 256; ++i)
+    {
+        mode2palette[i] = 0xff000000;
+    }
+
+    //
+
+    internalClock = 0;
+    demultiplier = 0;
+    currentScanline = 0;
+
+    currentPaletteEntry = -1;
+
+    vblank = false;
+    lineBlank = false;
+
+    mode0hwcursorx = 0;
+    mode0hwcursory = 0;
+    hwcursorLuma = 0;
+}
+
 void xpldVideochip::loadMode0Font()
 {
     std::string fileName = "D:\\prova\\xpld\\visual\\8x8font.png";
@@ -96,6 +118,11 @@ void xpldVideochip::loadMode0Font()
 void xpldVideochip::writeMode0Attr(unsigned long int addr, unsigned char c)
 {
     videomode0attr[addr] = c;
+}
+
+unsigned char xpldVideochip::readMode0Char(unsigned int address)
+{
+    return videomode0vram[address- 0x10000000];
 }
 
 void xpldVideochip::renderMode0Char(int charnum, int row, int col)
@@ -136,6 +163,65 @@ void xpldVideochip::renderMode0Char(int charnum, int row, int col)
             }
         }
     }
+}
+
+void xpldVideochip::renderHwCursor()
+{
+    int col = mode0hwcursorx;
+    int row = mode0hwcursory;
+
+    if ((col < 0) || (col >= videomode0numCols))
+    {
+        throw("Exception: hardware cursor column out of range");
+    }
+
+    if ((row < 0) || (row >= videomode0numRows))
+    {
+        throw("Exception: hardware cursor row out of range");
+    }
+
+    int bitmapPosx = col * mode0charDimx;
+    int bitmapPosy = row * mode0charDimy;
+
+    for (int py = 0;py < mode0charDimy;py++)
+    {
+        for (int px = 0;px < mode0charDimx;px++)
+        {
+            int realpx = px + bitmapPosx;
+            int realpy = py + bitmapPosy;
+
+            unsigned char* pdata = (unsigned char*)&mode0bitmap[(realpx + (realpy * videomode0numCols * mode0charDimx)) * 4];
+
+            unsigned char attr = videomode0attr[col + (row * videomode0numCols)];
+            unsigned char fgCol = attr & 0x0f;
+            unsigned char bgCol = (attr & 0xf0) >> 4;
+
+            int alpha = hwcursorLuma*2;
+            if (hwcursorLuma >= 128) alpha = 256 - ((hwcursorLuma-128) * 2);
+
+            int r0 = ((mode0palette[fgCol]&0xff)) ;
+            int g0 = (((mode0palette[fgCol]&0xff00) >> 8)) ;
+            int b0 = (((mode0palette[fgCol]&0xff0000) >> 16)) ;
+
+            int r1 = ((mode0palette[bgCol] & 0xff));
+            int g1 = (((mode0palette[bgCol] & 0xff00) >> 8));
+            int b1 = (((mode0palette[bgCol] & 0xff0000) >> 16));
+
+            int rf = ((r0 * alpha) + (r1 * (255 - alpha))) >> 8;
+            int gf = ((g0 * alpha) + (g1 * (255 - alpha))) >> 8;
+            int bf = ((b0 * alpha) + (b1 * (255 - alpha))) >> 8;
+
+            pdata[0] = rf & 0xff;
+            pdata[1] = gf & 0xff;
+            pdata[2] = bf & 0xff;
+            pdata[3] = 0xff;
+        }
+    }
+}
+
+unsigned char xpldVideochip::readMode2Char(unsigned int address)
+{
+    return videomode2vram[address- 0x11000000];
 }
 
 void xpldVideochip::writeMode0Char(unsigned long int addr, unsigned char c)
@@ -186,6 +272,11 @@ void xpldVideochip::feedData8(int sprnum, unsigned char val)
     spriteList[sprnum].feedData8(val);
 }
 
+unsigned int xpldVideochip::getMode0Palette(int e)
+{
+    return mode0palette[e];
+}
+
 int xpldVideochip::getCurModeBitmapWidth()
 {
     if (currentVideomode==VIDEOMODE0_TEXT) return videomode0numCols * mode0charDimx;
@@ -233,6 +324,31 @@ void xpldVideochip::setMode2PaletteColor(unsigned int c)
     mode2palette[currentPaletteEntry] = r | (g << 8) | (b << 16) | (0xff << 24);
 }
 
+unsigned int xpldVideochip::getInternalClock()
+{
+    return internalClock;
+}
+
+void xpldVideochip::setMode0hwcursorX(unsigned char x)
+{
+    mode0hwcursorx = x;
+}
+
+void xpldVideochip::setMode0hwcursorY(unsigned char y)
+{
+    mode0hwcursory = y;
+}
+
+int xpldVideochip::getMode0hwcursorX()
+{
+    return mode0hwcursorx;
+}
+
+int xpldVideochip::getMode0hwcursorY()
+{
+    return mode0hwcursory;
+}
+
 void xpldVideochip::stepOne()
 {
     demultiplier += 1;
@@ -253,6 +369,8 @@ void xpldVideochip::stepOne()
             {
                 vblank = true;
                 currentScanline = -1;
+                hwcursorLuma += 8;
+                hwcursorLuma %= 255;
             }
             else if (currentScanline == 0)
             {
@@ -275,6 +393,9 @@ void xpldVideochip::renderFull()
                 renderMode0Char(videomode0vram[col+(row*videomode0numCols)], row, col);
             }
         }
+
+        // draw hw cursor
+        renderHwCursor();
     }
     else if (currentVideomode == VIDEOMODE2_320x240)
     {
@@ -302,7 +423,6 @@ void xpldVideochip::renderFull()
         }
 
     }
-
 }
 
 void xpldVideochip::setVideomode(unsigned char v)

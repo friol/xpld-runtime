@@ -28,8 +28,8 @@ class xpldVideochip
 {
 private:
 
-    //int currentVideomode = VIDEOMODE0_TEXT;
-    int currentVideomode = VIDEOMODE2_320x240;
+    int currentVideomode = VIDEOMODE0_TEXT;
+    //int currentVideomode = VIDEOMODE2_320x240;
 
     unsigned char videomode0vram[videomode0numCols * videomode0numRows];
     unsigned char videomode0attr[videomode0numCols * videomode0numRows];
@@ -57,9 +57,15 @@ private:
     bool vblank = false;
     bool lineBlank = false;
 
+    unsigned char mode0hwcursorx = 0;
+    unsigned char mode0hwcursory = 0;
+    int hwcursorLuma = 0;
+
     std::vector<sprite> spriteList;
 
     void renderMode0Char(int charnum, int row, int col);
+
+    void renderHwCursor();
 
 public:
 
@@ -73,6 +79,9 @@ public:
     void writeMode0Char(unsigned long int addr, unsigned char c);
     void writeMode0Attr(unsigned long int addr, unsigned char c);
 
+    unsigned char readMode0Char(unsigned int address);
+
+    unsigned char readMode2Char(unsigned int address);
     void writeMode2Char(unsigned long int addr, unsigned char c);
 
     int getRasterLine();
@@ -82,11 +91,22 @@ public:
     void setSpriteAttribute(int sprnum,std::string attribName, int attribVal);
     void feedData8(int sprnum, unsigned char val);
 
+    unsigned int getMode0Palette(int e);
+
     void setMode2PaletteEntry(unsigned char p);
     void setMode2PaletteColor(unsigned int c);
 
-    void stepOne();
+    unsigned int getInternalClock();
 
+    void setMode0hwcursorX(unsigned char x);
+    void setMode0hwcursorY(unsigned char y);
+
+    int getMode0hwcursorX();
+    int getMode0hwcursorY();
+
+    void reset();
+
+    void stepOne();
     void renderFull();
 
     ~xpldVideochip();

@@ -12,7 +12,7 @@ private:
 
     std::string disasm(unsigned char* code, unsigned int& ipointer);
 
-    unsigned int read8(unsigned char* code,unsigned int codepos);
+    unsigned char read8(unsigned char* code,unsigned int codepos);
     unsigned int read32(unsigned char* code,unsigned int codepos);
 
     std::string paddedHex(unsigned int n);

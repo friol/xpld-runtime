@@ -152,6 +152,68 @@ void renderToTexture(xpldVideochip* vdu, GLuint image_texture)
     ImGui::Image((void*)(intptr_t)image_texture, ImVec2(image_width, image_height));
 }
 
+void drawPaletteColors(xpldVideochip* vdu)
+{
+    ImGui::Text("Mode 0 palette colors:");
+    for (int i = 0; i < 16; i++)
+    {
+        if ((i>0)&&(i!=8)) ImGui::SameLine();
+        unsigned int palcol = vdu->getMode0Palette(i);
+        ImGui::PushID(i);
+        ImVec4 colf = ImVec4(((float)(palcol&0xff))/255.0f, ((float)((palcol>>8)&0xff)) / 255.0f, ((float)((palcol >> 16) & 0xff)) / 255.0f, 1.0f);
+        //ImColor cl(colf);
+        ImGui::PushStyleColor(ImGuiCol_Button, colf);
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, colf);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, colf);
+        ImGui::Button(" ");
+        ImGui::PopStyleColor(3);
+        ImGui::PopID();
+    }
+
+}
+
+std::string utilPaddedHex(unsigned int n)
+{
+    std::string res = "";
+    std::stringstream stream;
+    stream << "0x" << std::setfill('0') << std::setw(4) << std::hex << n;
+    res += stream.str();
+
+    return res;
+}
+
+std::string byteToHex(unsigned char b)
+{
+    std::string res = "";
+    std::stringstream stream;
+    stream << std::hex << std::setfill('0') << std::setw(2) << (int)b;
+    res += stream.str();
+    return res;
+}
+
+void memoryViewer(xpldMMU* mmu)
+{
+    int mvRows = 10;
+    int bytesPerRow = 10;
+    unsigned int baseAddr = 0x500000;
+
+    for (int r = 0;r < mvRows;r++)
+    {
+        std::string curRow = "";
+        curRow += utilPaddedHex(baseAddr)+"  ";
+
+        for (int c = 0;c < bytesPerRow;c++)
+        {
+            unsigned char b = mmu->read8(baseAddr + c);
+            curRow += byteToHex(b)+" ";
+        }
+
+        ImGui::Text(curRow.c_str());
+
+        baseAddr += bytesPerRow;
+    }
+}
+
 int main(int, char**)
 {
     // Setup window
@@ -177,7 +239,7 @@ int main(int, char**)
 #endif
 
     // Create window with graphics context
-    GLFWwindow* window = glfwCreateWindow(1600, 980, "XPLD v0.1", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(1600,1000, "XPLD v0.2", NULL, NULL);
     if (window == NULL) return 1;
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1); // Enable vsync
@@ -239,6 +301,7 @@ int main(int, char**)
 
     bool atStartup = true;
     bool isDebugWindowFocused = true;
+    bool isRenderingWindowFocused = false;
 
     GLuint renderTexture;
     prepareGLTexture(theVDU,renderTexture);
@@ -260,6 +323,29 @@ int main(int, char**)
         // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application.
         // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
         glfwPollEvents();
+
+        // keys for XPLD computer
+        if (isRenderingWindowFocused)
+        {
+            for (int chr = 'A';chr <= 'Z';chr++)
+            {
+                if (ImGui::IsKeyPressed(chr))
+                {
+                    theMmu->setKeyPressed(chr+32);
+                }
+            }
+
+            if (ImGui::IsKeyPressed(io.KeyMap[ImGuiKey_Space])) theMmu->setKeyPressed(32);
+            if (ImGui::IsKeyPressed(io.KeyMap[ImGuiKey_Backspace])) theMmu->setKeyPressed(255);
+            if (ImGui::IsKeyPressed('.')) theMmu->setKeyPressed(14+32);
+
+            if (ImGui::IsKeyPressed(io.KeyMap[ImGuiKey_Enter]))
+            {
+                theMmu->setKeyPressed(13);
+            }
+        }
+
+        // debug keys
         if (ImGui::IsKeyPressed('S'))
         {
             if (isDebugWindowFocused)
@@ -272,7 +358,10 @@ int main(int, char**)
         }
         else if (ImGui::IsKeyPressed('R'))
         {
-            runCode = true;
+            if (isDebugWindowFocused)
+            {
+                runCode = true;
+            }
         }
         else if (runToAddress||runCode)
         {
@@ -306,7 +395,7 @@ int main(int, char**)
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        bool show_demo_window = true;
+        bool show_demo_window = false;
         ImGui::ShowDemoWindow(&show_demo_window);
 
         // registers window
@@ -319,6 +408,13 @@ int main(int, char**)
         // rendering window
         {
             ImGui::Begin("XPLD - Rendering");
+
+            if (ImGui::IsWindowFocused())
+            {
+                isRenderingWindowFocused = true;
+            }
+            else isRenderingWindowFocused = false;
+
             renderToTexture(theVDU, renderTexture);
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
             ImGui::End();
@@ -327,14 +423,34 @@ int main(int, char**)
         // control window
         {
             ImGui::Begin("Control window");
-            if (ImGui::Button("Reset"))
-            {
-
-            }
             if (ImGui::Button("Step"))
             {
-
+                theCpu->stepOne();
+                theVDU->stepOne();
+                theVDU->renderFull();
+                stepped = true;
             }
+            if (ImGui::Button("Run"))
+            {
+                runCode = true;
+            }
+
+            drawPaletteColors(theVDU);
+
+            if (ImGui::Button("Reset"))
+            {
+                theCpu->reset();
+                theVDU->reset();
+                runCode = false;
+            }
+
+            ImGui::End();
+        }
+
+        // memory viewer window
+        {
+            ImGui::Begin("Memory viewer window");
+            memoryViewer(theMmu);
             ImGui::End();
         }
 

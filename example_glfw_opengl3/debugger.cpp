@@ -10,7 +10,7 @@ debugger::debugger()
     // hello.
 }
 
-unsigned int debugger::read8(unsigned char* code, unsigned int codepos)
+unsigned char debugger::read8(unsigned char* code, unsigned int codepos)
 {
     return code[codepos];
 }
@@ -39,15 +39,15 @@ std::string debugger::addBytecode(unsigned char* code,std::string c, int ipointe
 {
     std::string bc = "";
 
-    for (int i = 0;i < 40-c.size();i++)
+    for (unsigned int i = 0;i < (40-c.size());i++)
     {
         bc += " ";
     }
 
-    for (int c = 0;c < bytes;c++)
+    for (int cl = 0;cl < bytes;cl++)
     {
         std::stringstream stream;
-        stream << std::setfill('0') << std::setw(2) << std::hex << (int)code[ipointer + c];
+        stream << std::setfill('0') << std::setw(2) << std::hex << (int)code[ipointer + cl];
         bc+= stream.str()+" ";
     }
 
@@ -88,7 +88,7 @@ std::string debugger::disasm(unsigned char* code, unsigned int& ipointer)
             // ld r0,immediate
             unsigned char regNum = read8(code,ipointer + 1);
             unsigned int n32 = read32(code,ipointer + 2);
-            res += "ld r" + std::to_string(regNum) + "," + std::to_string(n32);
+            res += "ld r" + std::to_string(regNum) + "," + paddedHex(n32);
             res += addBytecode(code, res, ipointer, 6);
             ipointer += 6;
             break;
@@ -108,7 +108,7 @@ std::string debugger::disasm(unsigned char* code, unsigned int& ipointer)
             // ld r0,[hexaddress] (load 32 bit value into reg from memory)
             unsigned char regDest = read8(code,ipointer+1);
             unsigned int addr32 = read32(code,ipointer+2);
-            res += "ld r" + std::to_string(regDest) + ",[" + std::to_string(addr32) + "]";
+            res += "ld r" + std::to_string(regDest) + ",[" + paddedHex(addr32) + "]";
             res += addBytecode(code, res, ipointer, 6);
             ipointer += 6;
             break;
@@ -137,8 +137,8 @@ std::string debugger::disasm(unsigned char* code, unsigned int& ipointer)
         {
             // ld32 [memory address 32 bit],imm
             unsigned int addr32 = read32(code, ipointer + 1);
-            unsigned char imm = read32(code, ipointer + 5);
-            res += "ld32 [" + paddedHex(addr32) + "]," + std::to_string(imm);
+            unsigned int imm = read32(code, ipointer + 5);
+            res += "ld32 [" + paddedHex(addr32) + "]," + paddedHex(imm);
             res += addBytecode(code, res, ipointer, 9);
             ipointer += 9;
             break;
@@ -168,7 +168,7 @@ std::string debugger::disasm(unsigned char* code, unsigned int& ipointer)
             // ld8 rx,[memory address 32 bit]
             unsigned char destReg= read8(code, (ipointer)+1);
             unsigned int addr32 = read32(code, (ipointer)+2);
-            res += "ld8 r" + std::to_string(destReg) + ",[" + std::to_string(addr32)+"]";
+            res += "ld8 r" + std::to_string(destReg) + ",[" + paddedHex(addr32)+"]";
             res += addBytecode(code, res, ipointer, 6);
             ipointer += 6;
             break;
@@ -209,6 +209,16 @@ std::string debugger::disasm(unsigned char* code, unsigned int& ipointer)
             unsigned char indirectReg = read8(code, (ipointer)+1);
             unsigned int imm8 = read8(code, (ipointer)+2);
             res += "ld8 [r" + std::to_string(indirectReg) + "]," + std::to_string(imm8);
+            res += addBytecode(code, res, ipointer, 3);
+            ipointer += 3;
+            break;
+        }
+        case 0x1d:
+        {
+            // ld32 rx,[ry]
+            unsigned char destReg = read8(code, (ipointer)+1);
+            unsigned char indReg = read8(code, (ipointer)+2);
+            res += "ld32 r" + std::to_string(destReg) + ",[r" + std::to_string(indReg) + "]";
             res += addBytecode(code, res, ipointer, 3);
             ipointer += 3;
             break;
@@ -279,8 +289,8 @@ std::string debugger::disasm(unsigned char* code, unsigned int& ipointer)
             unsigned char regNum = read8(code, ipointer + 1);
             unsigned char regNum2 = read8(code, ipointer + 2);
             res += "sub r" + std::to_string(regNum) + ",r" + std::to_string(regNum2);
-            res += addBytecode(code, res, ipointer, 6);
-            ipointer += 6;
+            res += addBytecode(code, res, ipointer, 3);
+            ipointer += 3;
             break;
         }
         case 0x50:
@@ -321,6 +331,16 @@ std::string debugger::disasm(unsigned char* code, unsigned int& ipointer)
             ipointer += 6;
             break;
         }
+        case 0x71:
+        {
+            // mod r0,r1
+            unsigned char regNum = read8(code, ipointer + 1);
+            unsigned char regNum2 = read8(code, ipointer + 2);
+            res += "mod r" + std::to_string(regNum) + ",r" + std::to_string(regNum2);
+            res += addBytecode(code, res, ipointer, 3);
+            ipointer += 3;
+            break;
+        }
         case 0x80:
         {
             // jmp 32-bit-address
@@ -335,6 +355,15 @@ std::string debugger::disasm(unsigned char* code, unsigned int& ipointer)
             // jnz 32-bit-address
             unsigned int addr32 = read32(code, ipointer + 1);
             res += "jnz " + paddedHex(addr32);
+            res += addBytecode(code, res, ipointer, 5);
+            ipointer += 5;
+            break;
+        }
+        case 0x83:
+        {
+            // jz 32-bit-address
+            unsigned int addr32 = read32(code, ipointer + 1);
+            res += "jz " + paddedHex(addr32);
             res += addBytecode(code, res, ipointer, 5);
             ipointer += 5;
             break;
@@ -393,7 +422,7 @@ std::vector<std::string> debugger::disasmCode(unsigned char* code, unsigned int 
     std::vector<std::string> disasmed;
     unsigned int ip = 0;
 
-    for (int i = 0;i < numInstructions;i++)
+    for (unsigned int i = 0;i < numInstructions;i++)
     {
         disasmed.push_back(disasm(code,ip));
     }

@@ -1,6 +1,7 @@
 #ifndef XPLD_MMU
 #define XPLD_MMU
 
+#include <queue>
 #include "koolibri.h"
 
 #define biosMemorySize 0x10000
@@ -20,6 +21,8 @@ private:
     int loadSystemBios();
     xpldVideochip* theVDU;
 
+    std::queue<int> keyPressArray;
+
 public:
 
     xpldMMU(xpldVideochip* vdu);
@@ -30,6 +33,8 @@ public:
     void write32(unsigned int address, unsigned int val);
 
     unsigned char* getBiosPtr();
+
+    void setKeyPressed(int k);
 };
 
 #endif

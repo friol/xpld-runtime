@@ -26,6 +26,11 @@ void sprite::setAttributes(int bitstring)
 
 void sprite::setDimx(int dx)
 {
+    if ((dx % 8) != 0)
+    {
+        throw("Error: sprite dimx not multiple of 8");
+    }
+
     dimx = dx;
     if (dimy != 0)
     {
@@ -86,12 +91,12 @@ void sprite::feedData8(unsigned char v)
 {
     if (spriteData == 0)
     {
-        throw("Code is trying to write on sprite not initializeddd!");
+        throw("Code is trying to write on uninitialized sprite");
     }
 
     if (type == 1)
     {
-        throw("Code is trying to feed 8bit data to a multicolour sprite");
+        throw("Code is trying to feed 8bit data to a multicolor sprite");
     }
 
     for (int b = 0;b < 8;b++)

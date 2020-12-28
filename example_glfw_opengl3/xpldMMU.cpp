@@ -28,6 +28,14 @@ unsigned char xpldMMU::read8(unsigned int address)
     {
         return dataSegment[address- 0x10000];
     }
+    else if ((address >= 0x10000000) && (address <= 0x100004af))
+    {
+        return theVDU->readMode0Char(address);
+    }
+    else if ((address >= 0x11000000) && (address <= 0x11012bff))
+    {
+        return theVDU->readMode2Char(address);
+    }
     else if ((address >= 0x00400000) && (address <= 0x0040ffff))
     {
         return stack[address - 0x00400000];
@@ -42,9 +50,27 @@ unsigned char xpldMMU::read8(unsigned int address)
         // VDU status register
         return theVDU->getStatusRegister();
     }
+    else if (address == 0x20010001)
+    {
+        // keyboard keypress read
+        if (keyPressArray.size() == 0) return 0;
+        int res = keyPressArray.front();
+        keyPressArray.pop();
+        return res;
+    }
+    else if (address == 0x20010010)
+    {
+        // VDU mode0 hw cursor x position
+        return theVDU->getMode0hwcursorX();
+    }
+    else if (address == 0x20010011)
+    {
+        // VDU mode0 hw cursor y position
+        return theVDU->getMode0hwcursorY();
+    }
     else
     {
-        printf("Error: unhandled read8 from address %d", address);
+        //printf("Error: unhandled read8 from address %d", address);
     }
 
     return 0;
@@ -52,12 +78,20 @@ unsigned char xpldMMU::read8(unsigned int address)
 
 unsigned int xpldMMU::read32(unsigned int address)
 {
-    unsigned int a = read8(address);
-    unsigned int b = read8(address+1);
-    unsigned int c = read8(address+2);
-    unsigned int d = read8(address+3);
+    if (address == 0x20010000)
+    {
+        // clock register
+        return theVDU->getInternalClock();
+    }
+    else
+    {
+        unsigned int a = read8(address);
+        unsigned int b = read8(address + 1);
+        unsigned int c = read8(address + 2);
+        unsigned int d = read8(address + 3);
 
-    return (a)|(b<<8)|(c<<16)|(d<<24);
+        return (a) | (b << 8) | (c << 16) | (d << 24);
+    }
 }
 
 void xpldMMU::write8(unsigned int address, unsigned char val)
@@ -96,6 +130,14 @@ void xpldMMU::write8(unsigned int address, unsigned char val)
         // set palette entry
         theVDU->setMode2PaletteEntry(val);
     }
+    else if (address == 0x20010010)
+    {
+        theVDU->setMode0hwcursorX(val);
+    }
+    else if (address == 0x20010011)
+    {
+        theVDU->setMode0hwcursorY(val);
+    }
     else if ((address >= 0x20000100) && (address <= 0x20001018))
     {
         // sprite control - 16 sprites
@@ -107,8 +149,6 @@ void xpldMMU::write8(unsigned int address, unsigned char val)
         if ((address & 0xff) == 3) theVDU->setSpriteAttribute(sprnum, "rotation", val);
         if ((address & 0xff) == 0x12) theVDU->feedData8(sprnum,val);
         if ((address & 0xff) == 0x18) theVDU->setSpriteAttribute(sprnum, "fgcolor", val);
-
-
     }
 }
 
@@ -120,6 +160,13 @@ void xpldMMU::write32(unsigned int address, unsigned int val)
         write8(address + 1, (val>>8) & 0xff);
         write8(address + 2, (val>>16) & 0xff);
         write8(address + 3, (val>>24) & 0xff);
+    }
+    else if ((address >= 0x00500000) && (address <= 0x005fffff))
+    {
+        write8(address + 0, val & 0xff);
+        write8(address + 1, (val >> 8) & 0xff);
+        write8(address + 2, (val >> 16) & 0xff);
+        write8(address + 3, (val >> 24) & 0xff);
     }
     else if ((address >= 0x20000100) && (address <= 0x20001018))
     {
@@ -139,6 +186,11 @@ void xpldMMU::write32(unsigned int address, unsigned int val)
 unsigned char* xpldMMU::getBiosPtr()
 {
     return bios;
+}
+
+void xpldMMU::setKeyPressed(int k)
+{
+    keyPressArray.push(k);
 }
 
 int xpldMMU::loadSystemBios()
