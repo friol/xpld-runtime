@@ -150,8 +150,12 @@ Koolibri has 16 sprites, with the following attributes:
 
 ## Disk interface (Frisbee)
 
+The disk interface maps a physical directory of your hard drive with a virtual disk (d0:) for the XPLD computer.<br/>
+<br/>
 Registers at 0x20020000 and 0x20020001 control the disk interface.
 At the moment, register 0x20020000 has 2 commands: 
 
-1. cmd=1: directory of current disk content
-2. cmd=2: load program to memory - 0x20020001 is a string zero terminated with filename
+1. cmd=1: directory (list current disk content)
+2. cmd=2: load program to memory - 0x20020001 must point to a zero terminated string with program's filename
+
+Those commands are used internally by the kernal.
