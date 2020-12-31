@@ -11,7 +11,7 @@ XPLD noteworthy components are:
 - a videochip called Koolibri
 - the disk interface, called Frisbee
 
-### CPU (Koobra)
+## CPU (Koobra)
 
 XPLD CPU is big endian<br/>
 It has 16 general purpose registers, 32 bit: r0-r15<br/>
@@ -53,4 +53,28 @@ ld8 rx,[ry] | load contents of memory address pointed by ry into rx, 8 bit | 0x1
 ld32 [rx],ry | load contents of register ry into rx, 32 bit | 0x1b
 ld8 [rx],immediate | load immediate into address pointed by rx, 8 bit | 0x1c
 ld32 rx,[ry] | load content of address pointed by ry into rx, 32 bit | 0x1d
+and rx,immediate | and rx register with immediate value | 0x20
+and rx,ry | and rx register with ry | 0x21
+add rx,immediate | add immediate to rx | 0x30
+add rx,ry | add ry to rx and store result in rx | 0x31
+mul rx,immediate | mul register rx by immediate value | 0x32
+mul rx,ry | mul register rx by ry | 0x33
+sub rx,immediate | sub immediate from register rx | 0x40
+sub rx,ry | sub register ry from rx | 0x41
+push rx | push rx on stack | 0x50
+pop rx | pop into rx from stack | 0x51
+cmp rx,immediate | compare rx with immediate and set flags accordingly | 0x60
+mod rx,immediate | execute modulo division of rx by immediate | 0x70
+jmp label | direct jump to label's address | 0x80
+jnz label | jump if not zero flag set | 0x81
+jmp <address 32 bit> | direct jump to absolute address | 0x82
+jz label | jump if zero flag set | 0x83
+jsr subName | jump to subroutine subName | 0x90
+rts | return from subroutine | 0x91
+jsr <absolute address> | jump to subroutine identified by absolute address | 0x92
+shr rx,immediate | shift register rx by immediate bits | 0xa0
+shr rx,ry | shift register rx by ry bits | 0xa1
+div rx,immediate | divide rx by immediate value | 0xb0
+
+## Video chip (Koolibri)
 
