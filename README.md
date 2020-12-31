@@ -79,7 +79,7 @@ shr rx,immediate | shift register rx by immediate bits | 0xa0
 shr rx,ry | shift register rx by ry bits | 0xa1
 div rx,immediate | divide rx by immediate value | 0xb0
   
-XPLD binaries (even the machine's kernal) are created with an assembler, which you can find in this other project, along with some examples.
+XPLD binaries (even the machine's kernal) are created with an assembler, which you can find in [this project](/https://github.com/friol/xpld-assembler), along with some examples.
 
 ## Memory map
 
