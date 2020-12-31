@@ -18,8 +18,6 @@ It has 16 general purpose registers, 32 bit: r0-r15<br/>
 pc - program counter<br/>
 sp - stack pointer<br/>
 f - flags register<br/>
-<br/>
-
 ```
 NVss DIZC
 |||| ||||
@@ -31,4 +29,17 @@ NVss DIZC
 |+-------- Overflow
 +--------- Negative
 ```
+Instruction encoding for the CPU is very simple and unoptimized:<br/>
+```
+<opcode> [param1, param2, ...]
+```
+But we have terabytes of space, so who cares. Here is a list of the main opcodes. The syntax is similar to Intel assembly (the destination register comes before the source):
+
+Instruction | Meaning | Opcode
+------------ | ------------- | -------------
+hlt | Halt CPU | 0x00
+nop | No operation | 0x01
+ld rx,immediate | Load immediate into register rx | 0x10
+ld rx,ry | Load register ry into register rx | 0x11
+
 
