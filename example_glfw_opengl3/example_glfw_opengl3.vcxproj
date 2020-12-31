@@ -92,6 +92,7 @@
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\..;..\..\backends;..\libs\glfw\include;..\libs\gl3w;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -123,6 +124,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <AdditionalIncludeDirectories>..\..;..\..\backends;..\libs\glfw\include;..\libs\gl3w;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BufferSecurityCheck>false</BufferSecurityCheck>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -165,10 +167,12 @@
     <ClCompile Include="..\..\backends\imgui_impl_opengl3.cpp" />
     <ClCompile Include="..\libs\gl3w\GL\gl3w.c" />
     <ClCompile Include="debugger.cpp" />
+    <ClCompile Include="frisbee.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="koobra.cpp" />
     <ClCompile Include="koolibri.cpp" />
     <ClCompile Include="sprite.cpp" />
+    <ClCompile Include="utils.cpp" />
     <ClCompile Include="xpldMMU.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -180,10 +184,14 @@
     <ClInclude Include="..\libs\gl3w\GL\gl3w.h" />
     <ClInclude Include="..\libs\gl3w\GL\glcorearb.h" />
     <ClInclude Include="debugger.h" />
+    <ClInclude Include="frisbee.h" />
     <ClInclude Include="koobra.h" />
     <ClInclude Include="koolibri.h" />
+    <ClInclude Include="miniconf\miniconf.h" />
+    <ClInclude Include="miniconf\picojson.h" />
     <ClInclude Include="sprite.h" />
     <ClInclude Include="stb_image.h" />
+    <ClInclude Include="utils.h" />
     <ClInclude Include="xpldMMU.h" />
   </ItemGroup>
   <ItemGroup>

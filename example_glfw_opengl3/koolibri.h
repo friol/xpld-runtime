@@ -69,8 +69,8 @@ private:
 
 public:
 
-    xpldVideochip();
-    void loadMode0Font();
+    xpldVideochip(std::string mode0FontPath);
+    void loadMode0Font(std::string mode0FontPath);
 
     int getCurModeBitmapWidth();
     int getCurModeBitmapHeight();

@@ -54,15 +54,16 @@ std::string debugger::addBytecode(unsigned char* code,std::string c, int ipointe
     return bc;
 }
 
-std::string debugger::disasm(unsigned char* code, unsigned int& ipointer)
+std::string debugger::disasm(unsigned char* code, unsigned int& instrPointer,unsigned int baseIP)
 {
     std::string res = "";
 
     std::stringstream stream;
-    stream << "0x" << std::setfill('0') << std::setw(4) << std::hex << ipointer;
+    stream << "0x" << std::setfill('0') << std::setw(4) << std::hex << instrPointer;
     res+=stream.str();
     res += "    ";
 
+    unsigned int ipointer= instrPointer-baseIP;
     unsigned char opcode = code[ipointer];
 
     switch (opcode)
@@ -321,6 +322,16 @@ std::string debugger::disasm(unsigned char* code, unsigned int& ipointer)
             ipointer += 6;
             break;
         }
+        case 0x61:
+        {
+            // cmp rx,ry
+            unsigned char reg1 = read8(code, ipointer + 1);
+            unsigned char reg2 = read8(code, ipointer + 2);
+            res += "cmp r" + std::to_string(reg1) + ",r" + std::to_string(reg2);
+            res += addBytecode(code, res, ipointer, 3);
+            ipointer += 3;
+            break;
+        }
         case 0x70:
         {
             // mod r0,immediate
@@ -359,6 +370,15 @@ std::string debugger::disasm(unsigned char* code, unsigned int& ipointer)
             ipointer += 5;
             break;
         }
+        case 0x82:
+        {
+            // jmp address
+            unsigned int addr32 = read32(code, ipointer + 1);
+            res += "jmp " + paddedHex(addr32);
+            res += addBytecode(code, res, ipointer, 5);
+            ipointer += 5;
+            break;
+        }
         case 0x83:
         {
             // jz 32-bit-address
@@ -385,6 +405,15 @@ std::string debugger::disasm(unsigned char* code, unsigned int& ipointer)
             ipointer += 1;
             break;
         }
+        case 0x92:
+        {
+            // jsr <address>
+            unsigned int addr32 = read32(code, ipointer + 1);
+            res += "jsr " + paddedHex(addr32);
+            res += addBytecode(code, res, ipointer, 5);
+            ipointer += 5;
+            break;
+        }
         case 0xa0:
         {
             // shr rx,imm
@@ -405,6 +434,26 @@ std::string debugger::disasm(unsigned char* code, unsigned int& ipointer)
             ipointer += 3;
             break;
         }
+        case 0xb0:
+        {
+            // div rx,immediate
+            unsigned char regNum = read8(code, ipointer + 1);
+            unsigned int n32 = read32(code, ipointer + 2);
+            res += "div r" + std::to_string(regNum) + "," + std::to_string(n32);
+            res += addBytecode(code, res, ipointer, 6);
+            ipointer += 6;
+            break;
+        }
+        case 0xb1:
+        {
+            // div rx,ry
+            unsigned char srcReg = read8(code, (ipointer)+1);
+            unsigned char opReg = read8(code, (ipointer)+2);
+            res += "div r" + std::to_string(srcReg) + ",r" + std::to_string(opReg);
+            res += addBytecode(code, res, ipointer, 3);
+            ipointer += 3;
+            break;
+        }
         default:
         {
             res += "unk";
@@ -414,17 +463,18 @@ std::string debugger::disasm(unsigned char* code, unsigned int& ipointer)
         }
     }
 
+    instrPointer = ipointer + baseIP;
     return res;
 }
 
-std::vector<std::string> debugger::disasmCode(unsigned char* code, unsigned int numInstructions)
+std::vector<std::string> debugger::disasmCode(unsigned char* code, unsigned int numInstructions, unsigned int baseIP)
 {
     std::vector<std::string> disasmed;
-    unsigned int ip = 0;
+    unsigned int ip = baseIP;
 
     for (unsigned int i = 0;i < numInstructions;i++)
     {
-        disasmed.push_back(disasm(code,ip));
+        disasmed.push_back(disasm(code,ip,baseIP));
     }
 
     return disasmed;

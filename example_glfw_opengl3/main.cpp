@@ -1,7 +1,7 @@
 /*
 
     xpld project
-    friol 2k20 (back to c++)
+    friol 2k20
 
 */
 
@@ -14,16 +14,17 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
+#include <cstdio>
+#include <exception>
+
+#include "miniconf/miniconf.h"
 
 #include "xpldMMU.h"
 #include "koobra.h"
 #include "koolibri.h"
+#include "frisbee.h"
 #include "debugger.h"
 
-// About Desktop OpenGL function loaders:
-//  Modern desktop OpenGL doesn't have a standard portable header file to load OpenGL function pointers.
-//  Helper libraries are often used for this purpose! Here we are supporting a few common ones (gl3w, glew, glad).
-//  You may use another loader/header of your choice (glext, glLoadGen, etc.), or chose to manually implement your own.
 #if defined(IMGUI_IMPL_OPENGL_LOADER_GL3W)
 #include <GL/gl3w.h>            // Initialize with gl3wInit()
 #elif defined(IMGUI_IMPL_OPENGL_LOADER_GLEW)
@@ -169,7 +170,6 @@ void drawPaletteColors(xpldVideochip* vdu)
         ImGui::PopStyleColor(3);
         ImGui::PopID();
     }
-
 }
 
 std::string utilPaddedHex(unsigned int n)
@@ -219,7 +219,9 @@ int main(int, char**)
     // Setup window
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit())
+    {
         return 1;
+    }
 
     // Decide GL+GLSL versions
 #ifdef __APPLE__
@@ -239,7 +241,7 @@ int main(int, char**)
 #endif
 
     // Create window with graphics context
-    GLFWwindow* window = glfwCreateWindow(1600,1000, "XPLD v0.2", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(1520,1000, "XPLD v0.3", NULL, NULL);
     if (window == NULL) return 1;
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1); // Enable vsync
@@ -288,16 +290,37 @@ int main(int, char**)
     IM_ASSERT(font != NULL);
 
     //
+    // load configuration
+    //
+
+    miniconf::Config conf;
+    conf.config("D:\\prova\\xpld\\settings.json");
+    std::string kernalPath;
+    std::string mode0FontPath;
+    std::string disk0Path;
+
+    try
+    {
+        kernalPath = conf["kernalFilename"].getString();
+        mode0FontPath = conf["mode0FontFilename"].getString();
+        disk0Path = conf["d0path"].getString();
+    }
+    catch (...)
+    {
+        fprintf(stderr, "Failed to load config from settings.json.\n");
+        return 1;
+    }
+
+    //
     // load XPLD components
     //
 
-    xpldVideochip* theVDU = new xpldVideochip();
-    xpldMMU* theMmu = new xpldMMU(theVDU);
+    xpldVideochip* theVDU = new xpldVideochip(mode0FontPath);
+    xpldMMU* theMmu = new xpldMMU(theVDU,kernalPath);
+    xpldDiskInterface* theDisk = new xpldDiskInterface(theMmu, disk0Path);
+    theMmu->setDisk(theDisk);
     xpldCPU* theCpu = new xpldCPU(theMmu);
     debugger* theDebugger = new debugger();
-
-    unsigned char* biosPtr = theMmu->getBiosPtr();
-    std::vector<std::string> disasmVector = theDebugger->disasmCode(biosPtr, 200);
 
     bool atStartup = true;
     bool isDebugWindowFocused = true;
@@ -317,12 +340,12 @@ int main(int, char**)
 
     while (!glfwWindowShouldClose(window))
     {
-        // Poll and handle events (inputs, window resize, etc.)
-        // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
-        // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application.
-        // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application.
-        // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
         glfwPollEvents();
+
+        unsigned char* biosPtr = theMmu->getBiosPtr();
+        unsigned char* programPtr = theMmu->getProgramArea();
+        //std::vector<std::string> disasmVector = theDebugger->disasmCode(programPtr, 200, 0x00600000);
+        std::vector<std::string> disasmVector = theDebugger->disasmCode(biosPtr, 500, 0x0);
 
         // keys for XPLD computer
         if (isRenderingWindowFocused)
@@ -332,6 +355,14 @@ int main(int, char**)
                 if (ImGui::IsKeyPressed(chr))
                 {
                     theMmu->setKeyPressed(chr+32);
+                }
+            }
+
+            for (int chr = '0';chr <= '9';chr++)
+            {
+                if (ImGui::IsKeyPressed(chr))
+                {
+                    theMmu->setKeyPressed(chr);
                 }
             }
 
@@ -434,6 +465,10 @@ int main(int, char**)
             {
                 runCode = true;
             }
+            if (ImGui::Button("Stop"))
+            {
+                runCode = false;
+            }
 
             drawPaletteColors(theVDU);
 
@@ -519,6 +554,7 @@ int main(int, char**)
 
     // Cleanup
 
+    delete(theDisk);
     delete(theVDU);
     delete(theCpu);
     delete(theMmu);

@@ -55,6 +55,12 @@
     <ClCompile Include="sprite.cpp">
       <Filter>sources</Filter>
     </ClCompile>
+    <ClCompile Include="frisbee.cpp">
+      <Filter>sources</Filter>
+    </ClCompile>
+    <ClCompile Include="utils.cpp">
+      <Filter>sources</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\imconfig.h">
@@ -94,6 +100,18 @@
       <Filter>sources</Filter>
     </ClInclude>
     <ClInclude Include="sprite.h">
+      <Filter>sources</Filter>
+    </ClInclude>
+    <ClInclude Include="miniconf\miniconf.h">
+      <Filter>sources</Filter>
+    </ClInclude>
+    <ClInclude Include="miniconf\picojson.h">
+      <Filter>sources</Filter>
+    </ClInclude>
+    <ClInclude Include="frisbee.h">
+      <Filter>sources</Filter>
+    </ClInclude>
+    <ClInclude Include="utils.h">
       <Filter>sources</Filter>
     </ClInclude>
   </ItemGroup>

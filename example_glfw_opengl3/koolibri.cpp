@@ -10,7 +10,7 @@
 #include "stb_image.h"
 
 
-xpldVideochip::xpldVideochip()
+xpldVideochip::xpldVideochip(std::string mode0FontPath)
 {
     // init mode 0 videoram
     for (int b = 0;b < videomode0numCols * videomode0numRows;b++)
@@ -49,7 +49,7 @@ xpldVideochip::xpldVideochip()
         mode2palette[i] = 0xff000000;
     }
 
-    loadMode0Font();
+    loadMode0Font(mode0FontPath);
 
     // allocate mode0 bitmap
     mode0bitmap = new unsigned char[videomode0numCols * videomode0numRows * mode0charDimx * mode0charDimy * 4];
@@ -104,11 +104,10 @@ void xpldVideochip::reset()
     hwcursorLuma = 0;
 }
 
-void xpldVideochip::loadMode0Font()
+void xpldVideochip::loadMode0Font(std::string mode0FontPath)
 {
-    std::string fileName = "D:\\prova\\xpld\\visual\\8x8font.png";
     int width, height, numComponents;
-    videomode0font = stbi_load(fileName.c_str(), &width, &height, &numComponents, 4);
+    videomode0font = stbi_load(mode0FontPath.c_str(), &width, &height, &numComponents, 4);
     if (videomode0font == NULL)
     {
         throw("koolibri: cannot load system mode 0 font");

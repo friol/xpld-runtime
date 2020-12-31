@@ -4,13 +4,16 @@
 #include <cassert>
 #include <fstream>
 #include <vector>
+
 #include "xpldMMU.h"
+#include "frisbee.h"
+#include "utils.h"
 
 
-xpldMMU::xpldMMU(xpldVideochip* vdu)
+xpldMMU::xpldMMU(xpldVideochip* vdu, std::string kernalPath)
 {
     memset(bios, 0, biosMemorySize);
-    if (loadSystemBios() != 0)
+    if (loadSystemBios(kernalPath) != 0)
     {
         throw("Error loading system BIOS");
     }
@@ -27,6 +30,14 @@ unsigned char xpldMMU::read8(unsigned int address)
     else if ((address >= 0x10000) && (address <= (0x10000+ dataSegmentMaxSize)))
     {
         return dataSegment[address- 0x10000];
+    }
+    else if ((address >= 0x00600000) && (address <= 0x0060ffff))
+    {
+        return programZone[address- 0x00600000];
+    }
+    else if ((address >= 0x00610000) && (address <= (0x00610000 + dataSegmentMaxSize)))
+    {
+        return programDataSegment[address - 0x00610000];
     }
     else if ((address >= 0x10000000) && (address <= 0x100004af))
     {
@@ -101,6 +112,14 @@ void xpldMMU::write8(unsigned int address, unsigned char val)
         // RAM
         ram[address - 0x0500000] = val;
     }
+    else if ((address >= 0x00600000) && (address <= 0x0060ffff))
+    {
+        programZone[address - 0x00600000]=val;
+    }
+    else if ((address >= 0x00610000) && (address <= (0x00610000 + dataSegmentMaxSize)))
+    {
+        programDataSegment[address - 0x00610000]=val;
+    }
     else if ((address >= 0x00400000) && (address <= 0x0040ffff))
     {
         stack[address - 0x00400000]=val;
@@ -150,6 +169,11 @@ void xpldMMU::write8(unsigned int address, unsigned char val)
         if ((address & 0xff) == 0x12) theVDU->feedData8(sprnum,val);
         if ((address & 0xff) == 0x18) theVDU->setSpriteAttribute(sprnum, "fgcolor", val);
     }
+    else if (address == 0x20020000)
+    {
+        // disk interface write
+        theDisk->executeCommand(val);
+    }
 }
 
 void xpldMMU::write32(unsigned int address, unsigned int val)
@@ -181,6 +205,11 @@ void xpldMMU::write32(unsigned int address, unsigned int val)
         // set palette color
         theVDU->setMode2PaletteColor(val);
     }
+    else if (address == 0x20020001)
+    {
+        // disk interface set filename address for LOAD
+        theDisk->setDiskLoadFilenameAddress(val);
+    }
 }
 
 unsigned char* xpldMMU::getBiosPtr()
@@ -193,74 +222,24 @@ void xpldMMU::setKeyPressed(int k)
     keyPressArray.push(k);
 }
 
-int xpldMMU::loadSystemBios()
+void xpldMMU::setDisk(xpldDiskInterface* dsk)
 {
-    std::string biosFilename = "D:\\prova\\xpld\\xpld.assembler\\bios.bin";
+    theDisk = dsk;
+}
 
-    std::ifstream file(biosFilename.c_str(), std::ios::binary | std::ios::ate);
-    std::streamsize totalFileSize = file.tellg();
-    file.seekg(0, std::ios::beg);
+unsigned char* xpldMMU::getProgramArea()
+{
+    return programZone;
+}
 
-    // XPLD0002
-    unsigned char header[8+1];
-    file.read((char*)header, 8);
-    header[8] = '\0';
-    if (strcmp((const char*)header, "XPLD0002"))
-    {
-        throw("Invalid header in xpld bios.bin");
-    }
-    totalFileSize -= 8;
+unsigned char* xpldMMU::getProgramDataSegment()
+{
+    return programDataSegment;
+}
 
-    // CODESIZE
-    unsigned char codesizeHeader[8 + 1];
-    file.read((char*)codesizeHeader, 8);
-    codesizeHeader[8] = '\0';
-    totalFileSize -= 8;
-
-    uint32_t codeSize;
-    file.read(reinterpret_cast<char*>(&codeSize), sizeof(codeSize));
-    totalFileSize -= 4;
-
-    // CODESEGM
-    unsigned char codeSegm[8 + 1];
-    file.read((char*)codeSegm, 8);
-    codeSegm[8] = '\0';
-    totalFileSize -= 8;
-
-    if (file.read((char*)bios, codeSize))
-    {
-        // everything will be ok.
-
-        totalFileSize -= codeSize;
-
-        // DSBASEDR
-        unsigned char dataSegmentBaseAddress[8 + 1];
-        file.read((char*)dataSegmentBaseAddress, 8);
-        dataSegmentBaseAddress[8] = '\0';
-        totalFileSize -= 8;
-
-        uint32_t dsBaseAddr;
-        file.read(reinterpret_cast<char*>(&dsBaseAddr), sizeof(dsBaseAddr));
-        totalFileSize -= 4;
-
-        if (totalFileSize >= dataSegmentMaxSize)
-        {
-            throw("Data segment too big");
-        }
-
-        // DATASEGM
-        unsigned char dataSegm[8 + 1];
-        file.read((char*)dataSegm, 8);
-        dataSegm[8] = '\0';
-        totalFileSize -= 8;
-
-        if (file.read((char*)dataSegment, totalFileSize))
-        {
-            return 0;
-        }
-
-        return 1;
-    }
-
-    return 1;
+int xpldMMU::loadSystemBios(std::string kernalPath)
+{
+    xpldUtils xpldUtil;
+    int retcode = xpldUtil.loadXPLDbinary(kernalPath, bios, dataSegment, dataSegmentMaxSize);
+    return retcode;
 }

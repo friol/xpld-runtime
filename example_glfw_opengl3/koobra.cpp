@@ -310,6 +310,16 @@ void xpldCPU::stepOne()
             pc += 6;
             break;
         }
+        case 0x61:
+        {
+            // cmp rx,ry
+            unsigned char regSrc = theMmu->read8(pc + 1);
+            unsigned char regSrc2 = theMmu->read8(pc + 2);
+            if (r[regSrc] == r[regSrc2]) setZeroFlag(true);
+            else setZeroFlag(false);
+            pc += 3;
+            break;
+        }
         case 0x70:
         {
             // mod r0,immediate
@@ -343,6 +353,13 @@ void xpldCPU::stepOne()
             else pc += 5;
             break;
         }
+        case 0x82:
+        {
+            // jmp addr32
+            unsigned int addr32 = theMmu->read32(pc + 1);
+            pc = addr32;
+            break;
+        }
         case 0x83:
         {
             // jz addr32
@@ -367,6 +384,14 @@ void xpldCPU::stepOne()
             pc = newPC;
             break;
         }
+        case 0x92:
+        {
+            // jsr absolute addr32
+            unsigned int addr32 = theMmu->read32(pc + 1);
+            push32(pc + 5);
+            pc = addr32;
+            break;
+        }
         case 0xa0:
         {
             // shr rx,immediate
@@ -382,6 +407,24 @@ void xpldCPU::stepOne()
             unsigned char regDst = theMmu->read8(pc + 1);
             unsigned char regSrc = theMmu->read8(pc + 2);
             r[regDst] >>= r[regSrc];
+            pc += 3;
+            break;
+        }
+        case 0xb0:
+        {
+            // div rx,immediate
+            unsigned char regSrc = theMmu->read8(pc + 1);
+            unsigned int num32 = theMmu->read32(pc + 2);
+            r[regSrc]/= num32;
+            pc += 6;
+            break;
+        }
+        case 0xb1:
+        {
+            // div rx,ry
+            unsigned char regDst = theMmu->read8(pc + 1);
+            unsigned char regSrc = theMmu->read8(pc + 2);
+            r[regDst] /= r[regSrc];
             pc += 3;
             break;
         }

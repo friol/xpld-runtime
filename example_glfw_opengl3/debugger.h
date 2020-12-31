@@ -10,7 +10,7 @@ class debugger
 {
 private:
 
-    std::string disasm(unsigned char* code, unsigned int& ipointer);
+    std::string disasm(unsigned char* code, unsigned int& ipointer,unsigned int baseIP);
 
     unsigned char read8(unsigned char* code,unsigned int codepos);
     unsigned int read32(unsigned char* code,unsigned int codepos);
@@ -23,7 +23,7 @@ public:
 
     debugger();
 
-    std::vector<std::string> disasmCode(unsigned char* code, unsigned int numInstructions);
+    std::vector<std::string> disasmCode(unsigned char* code, unsigned int numInstructions,unsigned int baseIP);
 
 
 };
