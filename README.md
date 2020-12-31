@@ -135,11 +135,19 @@ Koolibri has the following videomodes:
 Koolibri starts in mode 0, entire videoram is cleared with 0x00 char on reset, with 0x54 as fg/bg colours.
 As you can see from the memory map, Koolibri has Vblank and hblank flags that you can read in code for sync and raster effects.
 
-Koolibri has 16 sprites with attributes:
+Koolibri has 16 sprites, with the following attributes:
 - sprite attributes: monochrome/32bit, enabled/disabled (visibility)
-- dimx
+- dimx (multiple of 8)
 - dimy
 - rotation degrees
 - posx
 - posy
 - sprite data
+
+## Disk interface (Frisbee)
+
+Registers at 0x20020000 and 0x20020001 control the disk interface.
+At the moment, register 0x20020000 has 2 commands: 
+
+1. cmd=1: directory of current disk content
+2. cmd=2: load program to memory - 0x20020001 is a string zero terminated with filename
