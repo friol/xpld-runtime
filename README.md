@@ -36,7 +36,8 @@ Instruction encoding for the CPU is very simple and unoptimized:<br/>
 ```
 <opcode> [param1, param2, ...]
 ```
-But we have terabytes of space, so who cares. Here is a list of the main opcodes. The syntax is similar to Intel assembly (the destination register comes before the source):
+but we have terabytes of space, so who cares.<br/>
+Down below you can find a list of the main opcodes. The syntax is similar to Intel assembly (the destination register comes before the source):
 
 Instruction | Meaning | Opcode
 ------------ | ------------- | -------------
