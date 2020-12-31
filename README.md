@@ -13,12 +13,14 @@ XPLD noteworthy components are:
 
 ### CPU (Koobra)
 
-XPLD CPU is big endian
-16 general purpose registers, 32 bit: r0-r15
-pc - program counter
-sp - stack pointer
-f - flags register
+XPLD CPU is big endian<br/>
+It has 16 general purpose registers, 32 bit: r0-r15<br/>
+pc - program counter<br/>
+sp - stack pointer<br/>
+f - flags register<br/>
+<br/>
 
+```
 NVss DIZC
 |||| ||||
 |||| |||+- Carry
@@ -28,4 +30,5 @@ NVss DIZC
 ||++------ Not Used
 |+-------- Overflow
 +--------- Negative
+```
 
