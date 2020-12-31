@@ -11,6 +11,8 @@ XPLD noteworthy components are:
 - a videochip called <b>Koolibri</b>
 - the disk interface, called <b>Frisbee</b>
 
+This repository contains the XPLD runtime, which compiles with Visual Studio Community 2019. 
+
 ## CPU (Koobra)
 
 XPLD CPU is big endian<br/>
