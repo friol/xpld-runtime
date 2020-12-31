@@ -128,17 +128,14 @@ This is XPLD's memory map:
 
 Koolibri has the following videomodes:
 
-0 - 40x30 rows text mode, commodore style, initial mode on boot. You have 16 colours for the foreground and 16 for the background, from a fixed palette
-1 - 320x240 graphics mode, linear framebuffer, 16M colours
-2 - 320x240, 256 colours with palette from 16M
+0. 40x30 rows text mode, commodore style, initial mode on boot. You have 16 colours for the foreground and 16 for the background, from a fixed palette
+1. 320x240 graphics mode, linear framebuffer, 16M colours
+2. 320x240, 256 colours with palette from 16M
 
-Koolibri starts in mode 0, entire videoram is cleared with 0x00 char on reset.
-Vblank
-lblank (hblank)
+Koolibri starts in mode 0, entire videoram is cleared with 0x00 char on reset, with 0x54 as fg/bg colours.
+As you can see from the memory map, Koolibri has Vblank and hblank flags that you can read in code for sync and raster effects.
 
-Koolibri sprites:
-
-16 sprites with attributes:
+Koolibri has 16 sprites with attributes:
 - sprite attributes: monochrome/32bit, enabled/disabled (visibility)
 - dimx
 - dimy
