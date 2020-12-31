@@ -12,6 +12,7 @@ XPLD noteworthy components are:
 - the disk interface, called <b>Frisbee</b>
 
 This repository contains the XPLD runtime, which compiles with Visual Studio Community 2019. 
+The gui is made with [imgui](/https://github.com/ocornut/imgui "imgui").
 
 ## CPU (Koobra)
 
