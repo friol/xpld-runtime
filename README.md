@@ -16,8 +16,8 @@ The gui of XPLD is made with [imgui](https://github.com/ocornut/imgui "imgui").
 
 ## CPU (Koobra)
 
-XPLD CPU is big endian<br/>
-It has 16 general purpose registers, 32 bit: r0-r15<br/>
+XPLD CPU is big endian. It has 16 general purpose registers, 32 bit wide: r0-r15.<br/>
+Also, you've got:
 pc - program counter<br/>
 sp - stack pointer<br/>
 f - flags register<br/>
