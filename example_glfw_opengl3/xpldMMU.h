@@ -3,6 +3,7 @@
 
 #include <queue>
 #include "koolibri.h"
+#include "goorilla.h"
 
 class xpldDiskInterface;
 
@@ -26,6 +27,7 @@ private:
 
     xpldVideochip* theVDU;
     xpldDiskInterface* theDisk;
+    xpldSoundChip* theSoundChip;
 
     int loadSystemBios(std::string kernalPath);
 
@@ -33,7 +35,7 @@ private:
 
 public:
 
-    xpldMMU(xpldVideochip* vdu,std::string kernalPath);
+    xpldMMU(xpldVideochip* vdu,xpldSoundChip* snd,std::string kernalPath);
     unsigned char read8(unsigned int address);
     unsigned int read32(unsigned int address);
 

@@ -61,6 +61,9 @@
     <ClCompile Include="utils.cpp">
       <Filter>sources</Filter>
     </ClCompile>
+    <ClCompile Include="goorilla.cpp">
+      <Filter>sources</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\imconfig.h">
@@ -114,9 +117,18 @@
     <ClInclude Include="utils.h">
       <Filter>sources</Filter>
     </ClInclude>
+    <ClInclude Include="goorilla.h">
+      <Filter>sources</Filter>
+    </ClInclude>
+    <ClInclude Include="bass\bass.h">
+      <Filter>sources</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\misc\natvis\imgui.natvis">
+      <Filter>sources</Filter>
+    </None>
+    <None Include="..\..\..\settings.json">
       <Filter>sources</Filter>
     </None>
   </ItemGroup>

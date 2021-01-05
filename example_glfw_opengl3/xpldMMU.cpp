@@ -10,7 +10,7 @@
 #include "utils.h"
 
 
-xpldMMU::xpldMMU(xpldVideochip* vdu, std::string kernalPath)
+xpldMMU::xpldMMU(xpldVideochip* vdu, xpldSoundChip* snd,std::string kernalPath)
 {
     memset(bios, 0, biosMemorySize);
     if (loadSystemBios(kernalPath) != 0)
@@ -19,6 +19,7 @@ xpldMMU::xpldMMU(xpldVideochip* vdu, std::string kernalPath)
     }
 
     theVDU = vdu;
+    theSoundChip = snd;
 }
 
 unsigned char xpldMMU::read8(unsigned int address)
@@ -107,7 +108,12 @@ unsigned int xpldMMU::read32(unsigned int address)
 
 void xpldMMU::write8(unsigned int address, unsigned char val)
 {
-    if ((address >= 0x0500000) && (address <= 0x05fffff))
+    if ((address >= 0x10000) && (address <= (0x10000+dataSegmentMaxSize)))
+    {
+        // RAM
+        dataSegment[address - 0x10000] = val;
+    }
+    else if ((address >= 0x0500000) && (address <= 0x05fffff))
     {
         // RAM
         ram[address - 0x0500000] = val;
@@ -174,6 +180,23 @@ void xpldMMU::write8(unsigned int address, unsigned char val)
         // disk interface write
         theDisk->executeCommand(val);
     }
+    else if (address == 0x30000000)
+    {
+        // sound chip, voice 0 settings
+        theSoundChip->setVoiceStatus(0, val);
+    }
+    else if ((address >= 0x30000001) && (address <= 0x30000004))
+    {
+        // ADSR
+        if ((address % 5) == 1) theSoundChip->setVoiceAttack(0, val);
+        else if ((address % 5) == 2) theSoundChip->setVoiceDecay(0, val);
+        else if ((address % 5) == 3) theSoundChip->setVoiceSustain(0, val);
+        else if ((address % 5) == 4) theSoundChip->setVoiceRelease(0, val);
+    }
+    else if (address == 0x30000006)
+    {
+        theSoundChip->setVoiceVolume(0,val);
+    }
 }
 
 void xpldMMU::write32(unsigned int address, unsigned int val)
@@ -209,6 +232,16 @@ void xpldMMU::write32(unsigned int address, unsigned int val)
     {
         // disk interface set filename address for LOAD
         theDisk->setDiskLoadFilenameAddress(val);
+    }
+    else if (address == 0x30000005)
+    {
+        // voice 0 frequency
+        theSoundChip->setVoiceFrequency(0,val);
+    }
+    else if (address == 0x30000007)
+    {
+        // voice 0 duration
+        theSoundChip->setVoiceDuration(0, val);
     }
 }
 

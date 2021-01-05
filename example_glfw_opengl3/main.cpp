@@ -5,6 +5,13 @@
 
 */
 
+#include "miniconf/miniconf.h"
+
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
@@ -16,13 +23,15 @@
 #include <iomanip>
 #include <cstdio>
 #include <exception>
+#include <functional>
 
-#include "miniconf/miniconf.h"
+#include "bass/bass.h"
 
 #include "xpldMMU.h"
 #include "koobra.h"
 #include "koolibri.h"
 #include "frisbee.h"
+#include "goorilla.h"
 #include "debugger.h"
 
 #if defined(IMGUI_IMPL_OPENGL_LOADER_GL3W)
@@ -56,6 +65,35 @@ using namespace gl;
 #if defined(_MSC_VER) && (_MSC_VER >= 1900) && !defined(IMGUI_DISABLE_WIN32_FUNCTIONS)
 #pragma comment(lib, "legacy_stdio_definitions")
 #endif
+
+double PCFreq = 0.0;
+__int64 CounterStart = 0;
+
+int StartCounter()
+{
+    LARGE_INTEGER li;
+    if (!QueryPerformanceFrequency(&li))
+    {
+        printf("QueryPerformanceFrequency failed!\n");
+        return 1;
+    }
+    else
+    {
+        PCFreq = double(li.QuadPart) / 1000.0;
+
+        QueryPerformanceCounter(&li);
+        CounterStart = li.QuadPart;
+    }
+
+    return 0;
+}
+
+double GetCounter()
+{
+    LARGE_INTEGER li;
+    QueryPerformanceCounter(&li);
+    return double(li.QuadPart - CounterStart) / PCFreq;
+}
 
 static void glfw_error_callback(int error, const char* description)
 {
@@ -214,6 +252,57 @@ void memoryViewer(xpldMMU* mmu)
     }
 }
 
+int initBassLibrary(BASS_INFO& info,HSTREAM& stream)
+{
+    if (HIWORD(BASS_GetVersion()) != BASSVERSION)
+    {
+        printf("An incorrect version of BASS.DLL was loaded");
+        return 1;
+    }
+
+    if (!BASS_Init(-1, 48000, BASS_DEVICE_LATENCY, 0, NULL))
+    {
+        printf("Can't initialize device");
+        return 1;
+    }
+
+    BASS_SetConfig(BASS_CONFIG_BUFFER, 200); // set default/maximum buffer length to 200ms
+    BASS_GetInfo(&info);
+    //if (!info.freq) info.freq = 44100; // if the device's output rate is unknown, default to 44100 Hz
+    assert(info.freq == 48000);
+
+    //stream = BASS_StreamCreate(info.freq, 1, 0, (STREAMPROC*)xpldSoundChip::writeToOutputBuffer, 0);
+    stream = BASS_StreamCreate(info.freq, 1, 0, STREAMPROC_PUSH, 0);
+
+    //int buflen = 10 + info.minbuf + 1; // default buffer size = update period + 'minbuf' + 1ms extra margin
+    //BASS_ChannelSetAttribute(stream, BASS_ATTRIB_BUFFER, buflen / 1000.f);
+
+    BASS_StreamPutData(stream,NULL,sampleBufferLen*2);
+    BASS_ChannelPlay(stream, FALSE);
+
+    return 0;
+}
+
+void feedBASSStream(short int* b, HSTREAM& stream)
+{
+    DWORD retcode=BASS_StreamPutData(stream, b, sampleBufferLen*2);
+    if (retcode == -1)
+    {
+        int errCode = BASS_ErrorGetCode();
+        std::cout << errCode << std::endl;
+    }
+}
+
+int deinitBass()
+{
+    BASS_Free();
+    return 0;
+}
+
+//
+//
+//
+
 int main(int, char**)
 {
     // Setup window
@@ -316,7 +405,8 @@ int main(int, char**)
     //
 
     xpldVideochip* theVDU = new xpldVideochip(mode0FontPath);
-    xpldMMU* theMmu = new xpldMMU(theVDU,kernalPath);
+    xpldSoundChip* theSoundchip = new xpldSoundChip();
+    xpldMMU* theMmu = new xpldMMU(theVDU, theSoundchip,kernalPath);
     xpldDiskInterface* theDisk = new xpldDiskInterface(theMmu, disk0Path);
     theMmu->setDisk(theDisk);
     xpldCPU* theCpu = new xpldCPU(theMmu);
@@ -333,19 +423,33 @@ int main(int, char**)
     bool runCode = false;
     unsigned int targetAddress = 0;
 
+    unsigned char* biosPtr = theMmu->getBiosPtr();
+    unsigned char* programPtr = theMmu->getProgramArea();
+    //std::vector<std::string> disasmVector = theDebugger->disasmCode(programPtr, 200, 0x00600000);
+    std::vector<std::string> disasmVector = theDebugger->disasmCode(biosPtr, 500, 0x0);
+
+    //
+    // sound init
+    //
+
+    BASS_INFO bassInfo;
+    HSTREAM bassStream;
+
+    if (initBassLibrary(bassInfo, bassStream) != 0)
+    {
+        throw("Error in BASS sound initialization");
+        return 1;
+    }
+
     //
 
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
     bool stepped = false;
 
+    StartCounter();
     while (!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
-
-        unsigned char* biosPtr = theMmu->getBiosPtr();
-        unsigned char* programPtr = theMmu->getProgramArea();
-        //std::vector<std::string> disasmVector = theDebugger->disasmCode(programPtr, 200, 0x00600000);
-        std::vector<std::string> disasmVector = theDebugger->disasmCode(biosPtr, 500, 0x0);
 
         // keys for XPLD computer
         if (isRenderingWindowFocused)
@@ -396,13 +500,13 @@ int main(int, char**)
         }
         else if (runToAddress||runCode)
         {
-            int instrs = 0;
             bool goOut = false;
 
             while (!goOut)
             {
                 theCpu->stepOne();
                 theVDU->stepOne();
+                theSoundchip->stepOne();
 
                 unsigned int curPC = theCpu->getPC();
                 if ((curPC == targetAddress)&&(runToAddress))
@@ -410,15 +514,13 @@ int main(int, char**)
                     runToAddress = false;
                     goOut = true;
                 }
-                else
-                {
-                    instrs++;
-                }
 
-                if (instrs >= 65536*4) goOut = true;
+                if (theSoundchip->isSampleBufferFilled()) goOut = true;
             }
 
             theVDU->renderFull();
+            feedBASSStream(theSoundchip->getSampleBuffer(), bassStream);
+            theSoundchip->resetPointer();
         }
 
         // Start the Dear ImGui frame
@@ -548,17 +650,19 @@ int main(int, char**)
         glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
         glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
         glfwSwapBuffers(window);
     }
 
     // Cleanup
 
+    delete(theSoundchip);
     delete(theDisk);
     delete(theVDU);
     delete(theCpu);
     delete(theMmu);
     delete(theDebugger);
+
+    deinitBass();
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
