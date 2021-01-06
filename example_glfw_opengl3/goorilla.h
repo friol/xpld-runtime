@@ -9,7 +9,11 @@
 //#define sampleBufferLen (samplingFrequency/updatesPerSecond)
 #define sampleBufferLen 800
 
-#define tableLength 1024
+#define tableLength samplingFrequency
+
+#define attackMaxVol 100
+#define decayMaxVol 80
+#define sustainMaxVol 80
 
 enum voiceWaveforms
 {
@@ -30,10 +34,17 @@ typedef struct xpldSoundVoice
 
     unsigned char volume;
 
-    unsigned int attackTicks;
-    unsigned int decayTicks;
-    unsigned int sustainTicks;
-    unsigned int releaseTicks;
+    unsigned int attackPercent;
+    unsigned int decayPercent;
+    unsigned int sustainPercent;
+    unsigned int releasePercent;
+
+    float attackSlope;
+    float decaySlope;
+    float sustainSlope;
+    float releaseSlope;
+
+    float envelopeVol;
 };
 
 class xpldSoundChip
@@ -56,6 +67,8 @@ private:
     void initVoice(int voiceNum);
     void updateVoice(int voiceNum);
     short int getVoiceSample(int voiceNum);
+
+    void recalcVoiceParams(int voiceNum);
 
 public:
 
