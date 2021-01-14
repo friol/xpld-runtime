@@ -219,6 +219,15 @@ void xpldCPU::stepOne()
             pc += 3;
             break;
         }
+        case 0x1e:
+        {
+            // ld32 [rx],imm
+            unsigned char dstReg = theMmu->read8(pc + 1);
+            unsigned int imm = theMmu->read32(pc + 2);
+            theMmu->write32(r[dstReg], imm);
+            pc += 6;
+            break;
+        }
         case 0x20:
         {
             // and r0,immediate

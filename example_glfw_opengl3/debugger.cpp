@@ -224,6 +224,16 @@ std::string debugger::disasm(unsigned char* code, unsigned int& instrPointer,uns
             ipointer += 3;
             break;
         }
+        case 0x1e:
+        {
+            // ld32 [rx],immediate
+            unsigned char indirectReg = read8(code, (ipointer)+1);
+            unsigned int imm32 = read32(code, (ipointer)+2);
+            res += "ld32 [r" + std::to_string(indirectReg) + "]," + std::to_string(imm32);
+            res += addBytecode(code, res, ipointer, 6);
+            ipointer += 6;
+            break;
+        }
         case 0x20:
         {
             // and r0,immediate

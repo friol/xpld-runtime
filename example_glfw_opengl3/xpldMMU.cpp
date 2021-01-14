@@ -180,22 +180,27 @@ void xpldMMU::write8(unsigned int address, unsigned char val)
         // disk interface write
         theDisk->executeCommand(val);
     }
-    else if (address == 0x30000000)
+    else if ((address >= 0x30000000) && (address <= 0x3000002f))
     {
-        // sound chip, voice 0 settings
-        theSoundChip->setVoiceStatus(0, val);
-    }
-    else if ((address >= 0x30000001) && (address <= 0x30000004))
-    {
-        // ADSR
-        if ((address % 5) == 1) theSoundChip->setVoiceAttack(0, val);
-        else if ((address % 5) == 2) theSoundChip->setVoiceDecay(0, val);
-        else if ((address % 5) == 3) theSoundChip->setVoiceSustain(0, val);
-        else if ((address % 5) == 4) theSoundChip->setVoiceRelease(0, val);
-    }
-    else if (address == 0x30000006)
-    {
-        theSoundChip->setVoiceVolume(0,val);
+        int voiceNum = (address & 0x30) / 0x10;
+        int baseAddr = address&0x0f;
+        if (baseAddr==0)
+        {
+            // voice settings
+            theSoundChip->setVoiceStatus(voiceNum, val);
+        }
+        else if ((baseAddr >= 0x1) && (baseAddr <= 0x4))
+        {
+            // ADSR
+            if ((address % 5) == 1) theSoundChip->setVoiceAttack(voiceNum, val);
+            else if ((address % 5) == 2) theSoundChip->setVoiceDecay(voiceNum, val);
+            else if ((address % 5) == 3) theSoundChip->setVoiceSustain(voiceNum, val);
+            else if ((address % 5) == 4) theSoundChip->setVoiceRelease(voiceNum, val);
+        }
+        else if (baseAddr == 0x6)
+        {
+            theSoundChip->setVoiceVolume(voiceNum, val);
+        }
     }
 }
 
@@ -233,15 +238,20 @@ void xpldMMU::write32(unsigned int address, unsigned int val)
         // disk interface set filename address for LOAD
         theDisk->setDiskLoadFilenameAddress(val);
     }
-    else if (address == 0x30000005)
+    else if ((address >= 0x30000000) && (address <= 0x3000002f))
     {
-        // voice 0 frequency
-        theSoundChip->setVoiceFrequency(0,val);
-    }
-    else if (address == 0x30000007)
-    {
-        // voice 0 duration
-        theSoundChip->setVoiceDuration(0, val);
+        int voiceNum = (address & 0x30) / 0x10;
+        int baseAddr = address & 0x0f;
+        if (baseAddr==5)
+        {
+            // voice frequency
+            theSoundChip->setVoiceFrequency(voiceNum, val);
+        }
+        else if (baseAddr==7)
+        {
+            // voice duration
+            theSoundChip->setVoiceDuration(voiceNum, val);
+        }
     }
 }
 

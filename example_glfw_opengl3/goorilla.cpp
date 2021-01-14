@@ -15,16 +15,22 @@ xpldSoundChip::xpldSoundChip()
 
     // init tables
 
-    float pi = 3.14159265358979323846f;
-
+    float pi = 3.141592f;
     float sinAngle = 0.0;
     for (int i = 0;i < tableLength;i++)
     {
-        sintable[i] = (int)(sin(sinAngle) * 32767.0f);
-        sinAngle += (2.0f * pi) / (float)(tableLength);
+        float curval = (sin(sinAngle) * 32767.0f);
+        sintable[i] = (short int)curval;
+        squaretable[i] = 0;
+        tritable[i] = 0;
+
+        sinAngle += (2.0f * pi) / ((float)tableLength);
     }
 
-    angle = 0.0;
+    for (int i = 0;i < sampleBufferLen*2;i++)
+    {
+        sampleBuffer[i] = 0;
+    }
 }
 
 void xpldSoundChip::initVoice(int voiceNum)
@@ -47,7 +53,15 @@ void xpldSoundChip::updateVoice(int voiceNum)
 {
     if (voice[voiceNum].playing)
     {
-        voice[voiceNum].samplePos+=voice[voiceNum].voiceFrequency;
+        /*voice[voiceNum].samplePos+=voice[voiceNum].voiceFrequency;
+
+        if (voice[voiceNum].samplePos >= tableLength)
+        {
+            voice[voiceNum].samplePos -= tableLength;
+        }*/
+
+        voice[voiceNum].samplePos += 1;
+
         voice[voiceNum].tick++;
 
         if (voice[voiceNum].tick >= voice[voiceNum].duration)
@@ -70,6 +84,10 @@ void xpldSoundChip::updateVoice(int voiceNum)
             else if (voiceTick<(attackLen+decayLen)) voice[voiceNum].envelopeVol -= voice[voiceNum].decaySlope;
             else if (voiceTick<(attackLen+decayLen+sustainLen)) voice[voiceNum].envelopeVol += voice[voiceNum].sustainSlope;
             else voice[voiceNum].envelopeVol -= voice[voiceNum].releaseSlope;
+
+            // gah, clipping...
+            if (voice[voiceNum].envelopeVol < 0.0) voice[voiceNum].envelopeVol = 0;
+            if (voice[voiceNum].envelopeVol > 100.0) voice[voiceNum].envelopeVol = 100.0f;
         }
     }
 }
@@ -78,13 +96,43 @@ short int xpldSoundChip::getVoiceSample(int voiceNum)
 {
     if (voice[voiceNum].playing)
     {
-        short int sampl;
-
         if (voice[voiceNum].voiceWaveform == VOICE_SINE)
         {
-            sampl = sintable[voice[voiceNum].samplePos % tableLength];
-            float fsamp = (((float)sampl) * voice[voiceNum].envelopeVol)/100.0;
-            return (short)fsamp;
+            float side = sin(2.0 * 3.141592 * voice[voiceNum].voiceFrequency * voice[voiceNum].samplePos / 48000.0);
+            float sampl = side*32767.0;
+            sampl *= voice[voiceNum].envelopeVol;
+            sampl *= voice[voiceNum].volume;
+            sampl /= 100.0*255.0;
+            return (short int)sampl;
+        }
+        else if (voice[voiceNum].voiceWaveform == VOICE_SQUARE)
+        {
+            float side = sin(2.0 * 3.141592 * voice[voiceNum].voiceFrequency * voice[voiceNum].samplePos / 48000.0);
+            float sign = 1.0;
+            if (side < 0) sign = -1.0;
+            float sampl = sign * 32767.0;
+            sampl *= voice[voiceNum].envelopeVol;
+            sampl *= voice[voiceNum].volume;
+            sampl /= 100.0 * 255.0;
+            return (short int)sampl;
+        }
+        else if (voice[voiceNum].voiceWaveform == VOICE_TRIANGLE)
+        {
+            float t = voice[voiceNum].voiceFrequency * voice[voiceNum].samplePos / 48000.0;
+            float tri=1.0 - fabs(fmod(t, 2.0) - 1.0);
+            float sampl = tri * 32767.0;
+            sampl *= voice[voiceNum].envelopeVol;
+            sampl *= voice[voiceNum].volume;
+            sampl /= 100.0 * 255.0;
+            return (short int)sampl;
+        }
+        else if (voice[voiceNum].voiceWaveform == VOICE_NOISE)
+        {
+            float sampl = ((float)(rand()%65535))-32767.0;
+            sampl *= voice[voiceNum].envelopeVol;
+            sampl *= voice[voiceNum].volume;
+            sampl /= 100.0 * 255.0;
+            return (short int)sampl;
         }
 
         return 0;
@@ -138,6 +186,10 @@ void xpldSoundChip::setVoiceStatus(int voiceNum, unsigned char val)
     {
         voice[voiceNum].voiceWaveform = VOICE_SINE;
     }
+    else if (val & 16)
+    {
+        voice[voiceNum].voiceWaveform = VOICE_NOISE;
+    }
 }
 
 void xpldSoundChip::setVoiceAttack(int voiceNum, unsigned char val)
@@ -177,27 +229,24 @@ void xpldSoundChip::setVoiceDuration(int voiceNum, unsigned int duration)
 
 void xpldSoundChip::stepOne()
 {
-    if (sampleBufferPos == sampleBufferLen) return;
-
     demultiplier += 1;
     if (demultiplier < stepsPerCycle) return;
     demultiplier = 0;
 
-    short int finalSampl = 0;
+    if (sampleBufferPos >= (sampleBufferLen*2)) return;
+
+    int finalSampl = 0;
     for (int v = 0;v < numSoundVoices;v++)
     {
-        finalSampl += getVoiceSample(v);
+        finalSampl+=getVoiceSample(v);
         updateVoice(v);
     }
 
     sampleBuffer[sampleBufferPos] = finalSampl;
-    sampleBufferPos++;
-}
+    sampleBuffer[sampleBufferPos+1] = finalSampl;
 
-/*DWORD xpldSoundChip::writeToOutputBuffer(HSTREAM handle, short* buffer, DWORD length, void* user)
-{
-    return 0;
-}*/
+    sampleBufferPos+=2;
+}
 
 short int* xpldSoundChip::getSampleBuffer()
 {
@@ -206,7 +255,7 @@ short int* xpldSoundChip::getSampleBuffer()
 
 bool xpldSoundChip::isSampleBufferFilled()
 {
-    if (sampleBufferPos == sampleBufferLen)
+    if (sampleBufferPos == (sampleBufferLen*2))
     {
         return true;
     }
@@ -217,4 +266,12 @@ bool xpldSoundChip::isSampleBufferFilled()
 void xpldSoundChip::resetPointer()
 {
     sampleBufferPos = 0;
+    for (int i = 0;i < sampleBufferLen*2;i++)
+    {
+        sampleBuffer[i] = 0;
+    }
+}
+
+xpldSoundChip::~xpldSoundChip()
+{
 }

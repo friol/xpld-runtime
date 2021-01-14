@@ -1,6 +1,9 @@
 #ifndef GOORILLA_H
 #define GOORILLA_H
 
+#include <iostream>
+#include <fstream>
+
 #include "bass/bass.h"
 
 #define numSoundVoices 3
@@ -19,7 +22,8 @@ enum voiceWaveforms
 {
     VOICE_SQUARE,
     VOICE_TRIANGLE,
-    VOICE_SINE
+    VOICE_SINE,
+    VOICE_NOISE
 };
 
 typedef struct xpldSoundVoice
@@ -30,7 +34,7 @@ typedef struct xpldSoundVoice
     unsigned int duration;
 
     unsigned int tick;
-    unsigned int samplePos;
+    float samplePos;
 
     unsigned char volume;
 
@@ -56,11 +60,13 @@ private:
     int demultiplier = 0;
     const int stepsPerCycle = 256; // CPU cycles per soundchip cycle
 
-    int sintable[tableLength];
-    int squaretable[tableLength];
-    int tritable[tableLength];
+    short int sampleBuffer[sampleBufferLen*2];
 
-    short int sampleBuffer[sampleBufferLen];
+    std::ofstream myfile;
+
+    short int sintable[tableLength];
+    short int squaretable[tableLength];
+    short int tritable[tableLength];
 
     xpldSoundVoice voice[numSoundVoices];
 
@@ -85,11 +91,11 @@ public:
     void setVoiceVolume(int voiceNum, unsigned char val);
     void setVoiceDuration(int voiceNum, unsigned int duration);
 
-    //static DWORD CALLBACK writeToOutputBuffer(HSTREAM handle, short* buffer, DWORD length, void* user);
-
     short int* getSampleBuffer();
     bool isSampleBufferFilled();
     void resetPointer();
+
+    ~xpldSoundChip();
 };
 
 #endif

@@ -231,7 +231,7 @@ std::string byteToHex(unsigned char b)
 
 void memoryViewer(xpldMMU* mmu)
 {
-    int mvRows = 10;
+    int mvRows = 80;
     int bytesPerRow = 10;
     unsigned int baseAddr = 0x500000;
 
@@ -266,30 +266,35 @@ int initBassLibrary(BASS_INFO& info,HSTREAM& stream)
         return 1;
     }
 
-    BASS_SetConfig(BASS_CONFIG_BUFFER, 200); // set default/maximum buffer length to 200ms
+    //BASS_SetConfig(BASS_CONFIG_BUFFER, 200); // set default/maximum buffer length to 200ms
     BASS_GetInfo(&info);
     //if (!info.freq) info.freq = 44100; // if the device's output rate is unknown, default to 44100 Hz
     assert(info.freq == 48000);
 
     //stream = BASS_StreamCreate(info.freq, 1, 0, (STREAMPROC*)xpldSoundChip::writeToOutputBuffer, 0);
-    stream = BASS_StreamCreate(info.freq, 1, 0, STREAMPROC_PUSH, 0);
+    stream = BASS_StreamCreate(info.freq, 2, 0, STREAMPROC_PUSH, 0);
 
     //int buflen = 10 + info.minbuf + 1; // default buffer size = update period + 'minbuf' + 1ms extra margin
     //BASS_ChannelSetAttribute(stream, BASS_ATTRIB_BUFFER, buflen / 1000.f);
 
-    BASS_StreamPutData(stream,NULL,sampleBufferLen*2);
-    BASS_ChannelPlay(stream, FALSE);
+    //BASS_StreamPutData(stream,NULL,sampleBufferLen*2);
 
     return 0;
 }
 
+void startBASSStream(HSTREAM& stream)
+{
+    BASS_ChannelPlay(stream, FALSE);
+}
+
 void feedBASSStream(short int* b, HSTREAM& stream)
 {
-    DWORD retcode=BASS_StreamPutData(stream, b, sampleBufferLen*2);
+    DWORD retcode=BASS_StreamPutData(stream, b, sampleBufferLen*2*2);
     if (retcode == -1)
     {
         int errCode = BASS_ErrorGetCode();
         std::cout << errCode << std::endl;
+        throw("Error updating bass stream");
     }
 }
 
@@ -333,7 +338,7 @@ int main(int, char**)
     GLFWwindow* window = glfwCreateWindow(1520,1000, "XPLD v0.3", NULL, NULL);
     if (window == NULL) return 1;
     glfwMakeContextCurrent(window);
-    glfwSwapInterval(1); // Enable vsync
+    //glfwSwapInterval(1); // Enable vsync
 
     // Initialize OpenGL loader
 #if defined(IMGUI_IMPL_OPENGL_LOADER_GL3W)
@@ -446,7 +451,9 @@ int main(int, char**)
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
     bool stepped = false;
 
-    StartCounter();
+    //StartCounter();
+    startBASSStream(bassStream);
+
     while (!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
@@ -471,7 +478,34 @@ int main(int, char**)
             }
 
             if (ImGui::IsKeyPressed(io.KeyMap[ImGuiKey_Space])) theMmu->setKeyPressed(32);
-            if (ImGui::IsKeyPressed(io.KeyMap[ImGuiKey_Backspace])) theMmu->setKeyPressed(255);
+            //if (ImGui::IsKeyPressed(io.KeyMap[ImGuiKey_Backspace])) theMmu->setKeyPressed(255);
+
+            // 251,252,253,254 - up, down, left, right
+            if (ImGui::IsKeyPressed(io.KeyMap[ImGuiKey_UpArrow])) theMmu->setKeyPressed(251);
+            if (ImGui::IsKeyPressed(io.KeyMap[ImGuiKey_DownArrow])) theMmu->setKeyPressed(252);
+            if (ImGui::IsKeyPressed(io.KeyMap[ImGuiKey_LeftArrow])) theMmu->setKeyPressed(253);
+            if (ImGui::IsKeyPressed(io.KeyMap[ImGuiKey_RightArrow])) theMmu->setKeyPressed(254);
+
+            if (ImGui::IsKeyPressed(io.KeyMap[ImGuiKey_Tab])) theMmu->setKeyPressed(250);
+
+            if (ImGui::IsKeyPressed(io.KeyMap[ImGuiKey_PageUp])) theMmu->setKeyPressed(249);
+            if (ImGui::IsKeyPressed(io.KeyMap[ImGuiKey_PageDown])) theMmu->setKeyPressed(248);
+
+            if (ImGui::IsKeyPressed(io.KeyMap[ImGuiKey_Home])) theMmu->setKeyPressed(247);
+            if (ImGui::IsKeyPressed(io.KeyMap[ImGuiKey_End])) theMmu->setKeyPressed(246);
+
+            if (ImGui::IsKeyPressed(io.KeyMap[ImGuiKey_Delete])) theMmu->setKeyPressed(245);
+
+            if (ImGui::IsKeyPressed(io.KeyMap[ImGuiKey_Insert]))
+            {
+                theMmu->setKeyPressed(244);
+            }
+
+            if (ImGui::IsKeyPressed(io.KeyMap[ImGuiKey_Backspace]))
+            {
+                theMmu->setKeyPressed(243);
+            }
+
             if (ImGui::IsKeyPressed('.')) theMmu->setKeyPressed(14+32);
 
             if (ImGui::IsKeyPressed(io.KeyMap[ImGuiKey_Enter]))
