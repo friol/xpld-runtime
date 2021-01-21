@@ -9,7 +9,8 @@ XPLD noteworthy components are:
 
 - a 32 bit CPU called <b>Koobra</b>
 - a videochip called <b>Koolibri</b>
-- the disk interface, called <b>Frisbee</b>
+- a disk interface, called <b>Frisbee</b>
+- a soundchip, called <b>Goorilla</b>
 
 This repository contains the XPLD runtime, which compiles with Visual Studio Community 2019. Before running XPLD, you probably have to edit the settings.json file, to point to the right paths for d0:, the system font and the kernal binary.<br/><br/>
 The gui of XPLD is made with [imgui](https://github.com/ocornut/imgui "imgui").
