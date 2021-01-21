@@ -419,6 +419,24 @@ void xpldCPU::stepOne()
             pc += 3;
             break;
         }
+        case 0xa2:
+        {
+            // shl rx,immediate
+            unsigned char regSrc = theMmu->read8(pc + 1);
+            unsigned int num32 = theMmu->read32(pc + 2);
+            r[regSrc] <<= num32;
+            pc += 6;
+            break;
+        }
+        case 0xa3:
+        {
+            // shl rx,ry
+            unsigned char regDst = theMmu->read8(pc + 1);
+            unsigned char regSrc = theMmu->read8(pc + 2);
+            r[regDst] <<= r[regSrc];
+            pc += 3;
+            break;
+        }
         case 0xb0:
         {
             // div rx,immediate

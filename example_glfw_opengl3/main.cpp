@@ -233,7 +233,7 @@ void memoryViewer(xpldMMU* mmu)
 {
     int mvRows = 80;
     int bytesPerRow = 10;
-    unsigned int baseAddr = 0x500000;
+    unsigned int baseAddr = 0x500a00;
 
     for (int r = 0;r < mvRows;r++)
     {
@@ -431,7 +431,7 @@ int main(int, char**)
     unsigned char* biosPtr = theMmu->getBiosPtr();
     unsigned char* programPtr = theMmu->getProgramArea();
     //std::vector<std::string> disasmVector = theDebugger->disasmCode(programPtr, 200, 0x00600000);
-    std::vector<std::string> disasmVector = theDebugger->disasmCode(biosPtr, 500, 0x0);
+    std::vector<std::string> disasmVector = theDebugger->disasmCode(biosPtr, 1000, 0x0);
 
     //
     // sound init
@@ -478,7 +478,6 @@ int main(int, char**)
             }
 
             if (ImGui::IsKeyPressed(io.KeyMap[ImGuiKey_Space])) theMmu->setKeyPressed(32);
-            //if (ImGui::IsKeyPressed(io.KeyMap[ImGuiKey_Backspace])) theMmu->setKeyPressed(255);
 
             // 251,252,253,254 - up, down, left, right
             if (ImGui::IsKeyPressed(io.KeyMap[ImGuiKey_UpArrow])) theMmu->setKeyPressed(251);

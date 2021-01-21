@@ -28,8 +28,8 @@ class xpldVideochip
 {
 private:
 
-    int currentVideomode = VIDEOMODE0_TEXT;
-    //int currentVideomode = VIDEOMODE2_320x240;
+    //int currentVideomode = VIDEOMODE0_TEXT;
+    int currentVideomode = VIDEOMODE2_320x240;
 
     unsigned char videomode0vram[videomode0numCols * videomode0numRows];
     unsigned char videomode0attr[videomode0numCols * videomode0numRows];

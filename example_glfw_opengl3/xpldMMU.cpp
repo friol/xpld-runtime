@@ -235,8 +235,18 @@ void xpldMMU::write32(unsigned int address, unsigned int val)
     }
     else if (address == 0x20020001)
     {
-        // disk interface set filename address for LOAD
-        theDisk->setDiskLoadFilenameAddress(val);
+        // disk interface set filename address for LOAD/SAVE
+        theDisk->setDiskLoadSaveFilenameAddress(val);
+    }
+    else if (address == 0x20020002)
+    {
+        // low address of memory zone to save
+        theDisk->setLoAddrSaveZone(val);
+    }
+    else if (address == 0x20020003)
+    {
+        // high address of memory zone to save
+        theDisk->setHiAddrSaveZone(val);
     }
     else if ((address >= 0x30000000) && (address <= 0x3000002f))
     {

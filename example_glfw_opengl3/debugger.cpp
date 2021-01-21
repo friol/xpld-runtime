@@ -444,6 +444,26 @@ std::string debugger::disasm(unsigned char* code, unsigned int& instrPointer,uns
             ipointer += 3;
             break;
         }
+        case 0xa2:
+        {
+            // shl rx,imm
+            unsigned char regNum = read8(code, ipointer + 1);
+            unsigned int n32 = read32(code, ipointer + 2);
+            res += "shl r" + std::to_string(regNum) + "," + std::to_string(n32);
+            res += addBytecode(code, res, ipointer, 6);
+            ipointer += 6;
+            break;
+        }
+        case 0xa4:
+        {
+            // shl rx,ry
+            unsigned char srcReg = read8(code, (ipointer)+1);
+            unsigned char opReg = read8(code, (ipointer)+2);
+            res += "shl r" + std::to_string(srcReg) + ",r" + std::to_string(opReg);
+            res += addBytecode(code, res, ipointer, 3);
+            ipointer += 3;
+            break;
+        }
         case 0xb0:
         {
             // div rx,immediate

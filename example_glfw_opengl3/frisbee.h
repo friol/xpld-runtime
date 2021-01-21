@@ -20,7 +20,9 @@ private:
 
     std::string d0path;
 
-    unsigned int diskLoadFilenameAddress = 0;
+    unsigned int diskLoadSaveFilenameAddress = 0;
+    unsigned int memoryZoneSaveLowAddress = 0;
+    unsigned int memoryZoneSaveHighAddress = 0;
 
 public:
 
@@ -28,7 +30,9 @@ public:
 
     void executeCommand(unsigned char cmd);
 
-    void setDiskLoadFilenameAddress(unsigned int a);
+    void setDiskLoadSaveFilenameAddress(unsigned int a);
+    void setLoAddrSaveZone(unsigned int a);
+    void setHiAddrSaveZone(unsigned int a);
 };
 
 #endif
