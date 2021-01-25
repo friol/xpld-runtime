@@ -188,7 +188,8 @@ void renderToTexture(xpldVideochip* vdu, GLuint image_texture)
         image_data
     );
 
-    ImGui::Image((void*)(intptr_t)image_texture, ImVec2(image_width, image_height));
+    ImGui::Image((void*)(intptr_t)image_texture, ImVec2(image_width*6, image_height*6));
+    //ImGui::Image((void*)(intptr_t)image_texture, ImVec2(image_width, image_height));
 }
 
 void drawPaletteColors(xpldVideochip* vdu)

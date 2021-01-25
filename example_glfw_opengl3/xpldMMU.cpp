@@ -95,6 +95,17 @@ unsigned int xpldMMU::read32(unsigned int address)
         // clock register
         return theVDU->getInternalClock();
     }
+    else if ((address == 0x20010101) || (address == 0x20010102) || (address == 0x20010103))
+    {
+        if (address == 0x20010101) return theVDU->getCoordX();
+        if (address == 0x20010102) return theVDU->getCoordY();
+        if (address == 0x20010103) return theVDU->getCoordZ();
+    }
+    else if ((address == 0x20010105) || (address == 0x20010106))
+    {
+        if (address == 0x20010105) return theVDU->getFixedPointX();
+        if (address == 0x20010106) return theVDU->getFixedPointY();
+    }
     else
     {
         unsigned int a = read8(address);
@@ -175,10 +186,26 @@ void xpldMMU::write8(unsigned int address, unsigned char val)
         if ((address & 0xff) == 0x12) theVDU->feedData8(sprnum,val);
         if ((address & 0xff) == 0x18) theVDU->setSpriteAttribute(sprnum, "fgcolor", val);
     }
+    else if (address == 0x20010100)
+    {
+        // T&L command
+        theVDU->executeTLCommand(val);
+    }
+    else if (address == 0x20010108)
+    {
+        // line set pen color
+        theVDU->setPenColor(val);
+    }
     else if (address == 0x20020000)
     {
         // disk interface write
         theDisk->executeCommand(val);
+    }
+    else if ((address == 0x20010105) || (address == 0x20010106) || (address == 0x20010107))
+    {
+        if (address == 0x20010105) theVDU->setAAngle(val);
+        if (address == 0x20010106) theVDU->setBAngle(val);
+        if (address == 0x20010107) theVDU->setCAngle(val);
     }
     else if ((address >= 0x30000000) && (address <= 0x3000002f))
     {
@@ -232,6 +259,13 @@ void xpldMMU::write32(unsigned int address, unsigned int val)
     {
         // set palette color
         theVDU->setMode2PaletteColor(val);
+    }
+    else if ((address == 0x20010101)|| (address == 0x20010102)|| (address == 0x20010103)|| (address == 0x20010104))
+    {
+        if (address == 0x20010101) theVDU->setCoordX(val);
+        if (address == 0x20010102) theVDU->setCoordY(val);
+        if (address == 0x20010103) theVDU->setCoordZ(val);
+        if (address == 0x20010104) theVDU->setFovVal(val);
     }
     else if (address == 0x20020001)
     {

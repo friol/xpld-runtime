@@ -28,8 +28,8 @@ class xpldVideochip
 {
 private:
 
-    //int currentVideomode = VIDEOMODE0_TEXT;
-    int currentVideomode = VIDEOMODE2_320x240;
+    int currentVideomode = VIDEOMODE0_TEXT;
+    //int currentVideomode = VIDEOMODE2_320x240;
 
     unsigned char videomode0vram[videomode0numCols * videomode0numRows];
     unsigned char videomode0attr[videomode0numCols * videomode0numRows];
@@ -61,11 +61,19 @@ private:
     unsigned char mode0hwcursory = 0;
     int hwcursorLuma = 0;
 
+    // T&L
+    int xpoint, ypoint, zpoint, viewfov;
+    int aangle, bangle, cangle;
+    int xproj, yproj;
+    unsigned char penColor;
+
     std::vector<sprite> spriteList;
 
     void renderMode0Char(int charnum, int row, int col);
 
     void renderHwCursor();
+
+    void bresenhamLine(int x1, int y1, int x2, int y2);
 
 public:
 
@@ -108,6 +116,23 @@ public:
 
     void stepOne();
     void renderFull();
+
+    // T&L
+    void executeTLCommand(int cmdNum);
+    void setCoordX(int val);
+    void setCoordY(int val);
+    void setCoordZ(int val);
+    void setFovVal(int val);
+    void setAAngle(int val);
+    void setBAngle(int val);
+    void setCAngle(int val);
+    void setPenColor(unsigned char val);
+
+    int getFixedPointX();
+    int getFixedPointY();
+    int getCoordX();
+    int getCoordY();
+    int getCoordZ();
 
     ~xpldVideochip();
 };

@@ -124,6 +124,137 @@ unsigned char xpldVideochip::readMode0Char(unsigned int address)
     return videomode0vram[address- 0x10000000];
 }
 
+void xpldVideochip::executeTLCommand(int cmdNum)
+{
+    if (cmdNum == 0)
+    {
+        int zdiv = zpoint;
+        if (zdiv == 0) zdiv = 1;
+
+        // project to 2d plane and center
+        xproj = (xpoint * viewfov) / zdiv;
+        yproj = (ypoint * viewfov) / zdiv;
+
+        xproj >>= 8;
+        yproj >>= 8;
+
+        xproj += mode2dimx/2;
+        yproj += mode2dimy/2;
+    }
+    else if (cmdNum == 1)
+    {
+        // rotate 3d point around origin of a,b,c
+        float a = 3.141592 * 2.0 * ((float)aangle) / 256.0;
+        float b = 3.141592 * 2.0 * ((float)bangle) / 256.0;
+        float c = 3.141592 * 2.0 * ((float)cangle) / 256.0;
+
+        float cosa = cos(a);
+        float sina = sin(a);
+
+        float cosb = cos(b);
+        float sinb = sin(b);
+
+        float cosc = cos(c);
+        float sinc = sin(c);
+
+        float Axx = cosa * cosb;
+        float Axy = cosa * sinb * sinc - sina * cosc;
+        float Axz = cosa * sinb * cosc + sina * sinc;
+
+        float Ayx = sina * cosb;
+        float Ayy = sina * sinb * sinc + cosa * cosc;
+        float Ayz = sina * sinb * cosc - cosa * sinc;
+
+        float Azx = -sinb;
+        float Azy = cosb * sinc;
+        float Azz = cosb * cosc;
+
+        float newx= Axx * xpoint + Axy * ypoint + Axz * zpoint;
+        float newy= Ayx * xpoint + Ayy * ypoint + Ayz * zpoint;
+        float newz= Azx * xpoint + Azy * ypoint + Azz * zpoint;
+
+        xpoint = newx;
+        ypoint = newy;
+        zpoint = newz;
+    }
+    else if (cmdNum == 2)
+    {
+        // 2d line by 2 2d points
+
+        int x0 = xpoint;
+        int y0 = ypoint;
+        int x1 = zpoint;
+        int y1 = viewfov;
+
+        bresenhamLine(x0, y0, x1, y1);
+    }
+}
+
+void xpldVideochip::setCoordX(int val)
+{
+    xpoint = val;
+}
+
+void xpldVideochip::setCoordY(int val)
+{
+    ypoint = val;
+}
+
+void xpldVideochip::setCoordZ(int val)
+{
+    zpoint = val;
+}
+
+void xpldVideochip::setFovVal(int val)
+{
+    viewfov = val;
+}
+
+void xpldVideochip::setAAngle(int val)
+{
+    aangle = val;
+}
+
+void xpldVideochip::setBAngle(int val)
+{
+    bangle = val;
+}
+
+void xpldVideochip::setCAngle(int val)
+{
+    cangle = val;
+}
+
+void xpldVideochip::setPenColor(unsigned char val)
+{
+    penColor = val;
+}
+
+int xpldVideochip::getFixedPointX()
+{
+    return xproj;
+}
+
+int xpldVideochip::getFixedPointY()
+{
+    return yproj;
+}
+
+int xpldVideochip::getCoordX()
+{
+    return xpoint;
+}
+
+int xpldVideochip::getCoordY()
+{
+    return ypoint;
+}
+
+int xpldVideochip::getCoordZ()
+{
+    return zpoint;
+}
+
 void xpldVideochip::renderMode0Char(int charnum, int row, int col)
 {
     int bitmapPosx = col * mode0charDimx;
@@ -214,6 +345,58 @@ void xpldVideochip::renderHwCursor()
             pdata[1] = gf & 0xff;
             pdata[2] = bf & 0xff;
             pdata[3] = 0xff;
+        }
+    }
+}
+
+// bresenham line algorithm stolen from https://stackoverflow.com/questions/32251437/please-explain-this-bresenham-line-drawing-code-for-me
+void xpldVideochip::bresenhamLine(int x1, int y1, int x2, int y2)
+{
+    int dx = x2 - x1;
+    int ix((dx > 0) - (dx < 0));
+
+    dx = abs(dx) << 1;
+
+    int dy = y2 - y1;
+    int iy((dy > 0) - (dy < 0));
+    dy = abs(dy) << 1;
+
+    if ((x1>=0)&&(x1<mode2dimx)&&(y1>=0)&&(y1<mode2dimy)) videomode2vram[x1 + (y1 * mode2dimx)] = penColor;
+
+    if (dx >= dy)
+    {
+        int error(dy - (dx >> 1));
+
+        while (x1 != x2)
+        {
+            if ((error >= 0) && (error || (ix > 0)))
+            {
+                error -= dx;
+                y1 += iy;
+            }
+
+            error += dy;
+            x1 += ix;
+
+            if ((x1 >= 0) && (x1 < mode2dimx) && (y1 >= 0) && (y1 < mode2dimy)) videomode2vram[x1 + (y1 * mode2dimx)] = penColor;
+        }
+    }
+    else
+    {
+        int error(dx - (dy >> 1));
+
+        while (y1 != y2)
+        {
+            if ((error >= 0) && (error || (iy > 0)))
+            {
+                error -= dy;
+                x1 += ix;
+            }
+
+            error += dx;
+            y1 += iy;
+
+            if ((x1 >= 0) && (x1 < mode2dimx) && (y1 >= 0) && (y1 < mode2dimy)) videomode2vram[x1 + (y1 * mode2dimx)] = penColor;
         }
     }
 }
