@@ -2,9 +2,7 @@
 
 ![XPLD environment](https://github.com/friol/xpld-runtime/raw/master/xpld0.3.png)
 
-<img src="https://raw.githubusercontent.com/friol/xpld-runtime/master/tracker.png" width="320" height="240">
-<img src="https://raw.githubusercontent.com/friol/xpld-runtime/master/pong.png" width="320" height="240">
-<img src="https://raw.githubusercontent.com/friol/xpld-runtime/master/xpld3d.png" width="320" height="240">
+<img src="https://raw.githubusercontent.com/friol/xpld-runtime/master/tracker.png" width="320" height="240"><img src="https://raw.githubusercontent.com/friol/xpld-runtime/master/pong.png" width="320" height="240"><img src="https://raw.githubusercontent.com/friol/xpld-runtime/master/xpld3d.png" width="320" height="240">
 
 XPLD is a fantasy computer created from scratch. The CPU, video chip, disk interface, etc. are all invented.<br/>
 Of course, XPLD is heavily inspired by home computers of my youth, like the Commodore family of 8 bit PCs, the Commodore Amiga and so on.
